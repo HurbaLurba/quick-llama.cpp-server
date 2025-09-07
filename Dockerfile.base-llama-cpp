@@ -1,0 +1,70 @@
+# Base image with llama.cpp compiled for ADA/BLACKWELL architectures
+# This will be reused by all model-specific Dockerfiles
+FROM pytorch/pytorch:2.8.0-cuda12.9-cudnn9-devel AS llama-base
+
+LABEL maintainer="Your Name"
+LABEL description="llama.cpp base image with CUDA support for ADA/BLACKWELL (32GB VRAM) GPUs"
+LABEL version="latest"
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git cmake ninja-build build-essential ca-certificates wget \
+    libcurl4-openssl-dev dos2unix \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir huggingface_hub
+
+# Clone and build llama.cpp with optimal ADA/BLACKWELL settings
+WORKDIR /workspace
+RUN git clone https://github.com/ggml-org/llama.cpp.git && \
+    cd llama.cpp && \
+    git log -1 --format="%H %s" > /workspace/llama-cpp-version.txt
+
+WORKDIR /workspace/llama.cpp
+
+# Build with ADA/BLACKWELL optimizations (compute capability 8.6, 8.9, 9.0)
+RUN cmake -S . -B build \
+    -DGGML_CUDA=ON \
+    -DLLAMA_BUILD_SERVER=ON \
+    -DLLAMA_BUILD_EXAMPLES=ON \
+    -DGGML_FLASH_ATTN=ON \
+    -DGGML_CUDA_F16=ON \
+    -DGGML_CUDA_FORCE_DMMV=ON \
+    -DGGML_CUDA_FORCE_MMQ=OFF \
+    -DCMAKE_CUDA_ARCHITECTURES="86;89;90" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -G Ninja \
+ && cmake --build build --config Release -j$(nproc)
+
+# Create build info without running CUDA-dependent binaries
+RUN echo "Build completed at: $(date)" > /workspace/build-info.txt && \
+    echo "CUDA Architectures: 86;89;90 (ADA/BLACKWELL)" >> /workspace/build-info.txt && \
+    echo "Flash Attention: ON" >> /workspace/build-info.txt && \
+    echo "llama.cpp commit: $(cat /workspace/llama-cpp-version.txt)" >> /workspace/build-info.txt && \
+    ls -la /workspace/llama.cpp/build/bin/ && \
+    echo "Binaries built successfully" >> /workspace/build-info.txt
+
+# Set up cache directory
+ENV LLAMA_CACHE=/root/.cache/llama
+RUN mkdir -p "$LLAMA_CACHE"
+
+# CUDA optimization environment variables for ADA/BLACKWELL (32GB VRAM)
+ENV CUBLAS_WORKSPACE_CONFIG=":16:8"
+ENV CUDA_LAUNCH_BLOCKING="1"
+ENV CUDA_DEVICE_MAX_COPY_CONNECTIONS="1"
+ENV CUDA_AUTO_BOOST="1"
+ENV CUDA_AUTO_BOOST_DEFAULT="1"
+ENV CUDA_CACHE_DISABLE="1"
+ENV CUDA_MANAGED_FORCE_DEVICE_ALLOC="1"
+ENV CUDA_DEVICE_MAX_CONNECTIONS="1"
+ENV CUDA_DISABLE_JIT="0"
+ENV CUDA_DISABLE_PTX_JIT="0"
+
+# Add llama.cpp binaries to PATH
+ENV PATH="/workspace/llama.cpp/build/bin:${PATH}"
+
+# Expose standard port
+EXPOSE 8080
+
+WORKDIR /workspace

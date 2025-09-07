@@ -1,0 +1,44 @@
+# Gemma 3 27B Vision Container using pre-compiled llama.cpp base
+FROM llama-base:latest
+
+# Gemma 3 27B Abliterated Model Configuration
+ENV MODEL_REPO="mlabonne/gemma-3-27b-it-abliterated-GGUF"
+ENV MODEL_FILE="gemma-3-27b-it-abliterated.q4_k_m.gguf"
+ENV MODEL_QUANT="Q4_K_M"
+ENV MMPROJ_REPO="mlabonne/gemma-3-27b-it-abliterated-GGUF"
+ENV MMPROJ_FILE="mmproj-mlabonne_gemma-3-27b-it-abliterated-f16.gguf"
+ENV CONTEXT_SIZE="131072"
+ENV MODEL_ALIAS="gemma3-27b-abliterated-vision"
+
+# Gemma 3 Reasoning Configuration (full reasoning support enabled)
+ENV REASONING_FORMAT="deepseek"
+ENV REASONING_BUDGET="-1"
+ENV THINKING_FORCED_OPEN="false"
+ENV CHAT_TEMPLATE="gemma"
+
+# 32GB VRAM ADA/BLACKWELL Performance Optimization (stable settings for quality)
+ENV BATCH_SIZE="2048"
+ENV UBATCH_SIZE="2048"
+ENV PARALLEL_SEQUENCES="1"
+ENV FLASH_ATTENTION="on"
+ENV N_GPU_LAYERS="-1"
+ENV CACHE_TYPE_K="f16"
+ENV CACHE_TYPE_V="f16"
+ENV NO_MMAP="false"
+ENV MAX_TOKENS="16384"
+ENV CPU_MOE="false"
+
+# Cache directory for huggingface downloads
+ENV LLAMA_CACHE="/root/.cache/llama"
+
+# Expose the OpenAI-compatible server
+EXPOSE 8080
+
+# Copy startup scripts
+COPY scripts/ /workspace/scripts/
+RUN chmod +x /workspace/scripts/*.sh && \
+    find /workspace/scripts -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find /workspace/scripts -name "*.sh" -exec dos2unix {} \;
+
+# Default: serve the Gemma 3 model with vision capabilities
+CMD ["/workspace/scripts/start-gemma3-27b-abliterated-vision.sh"]

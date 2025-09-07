@@ -1,2 +1,0 @@
-# quick llama.cpp server
-
