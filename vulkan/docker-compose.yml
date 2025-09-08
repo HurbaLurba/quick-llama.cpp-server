@@ -9,18 +9,29 @@ services:
     container_name: mistral-small-3.2-24b-vision-vulkan
     environment:
       - MODEL_SCRIPT=mistral-small-3.2-24b-vision-vulkan
-      # Vulkan environment variables for cross-platform GPU support
+      # AMD-focused Vulkan environment variables
       - VK_LAYER_PATH=/usr/share/vulkan/explicit_layer.d
-      - VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json
+      - VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json:/usr/share/vulkan/icd.d/nvidia_icd.json
       - VULKAN_SDK=/usr
-      - VK_LOADER_DEBUG=none
+      - VK_LOADER_DEBUG=warn
       - VK_INSTANCE_LAYERS=""
-      # Force Vulkan device selection (will auto-detect best available)
+      # AMD-specific optimizations for Ryzen AI and APU graphics
+      - AMD_VULKAN_ICD=RADV
+      - RADV_PERFTEST=aco,llvm
+      - MESA_VK_VERSION_OVERRIDE=1.3
+      - MESA_LOADER_DRIVER_OVERRIDE=radeonsi
+      # Force Vulkan device selection and enable debugging
       - GGML_VULKAN_DEVICE=0
+      - GGML_VULKAN_CHECK_RESULTS=1
     ports:
       - "8085:8080"
     volumes:
       - ${USERPROFILE:-~}/.cache/llama:/root/.cache/llama
+      # GPU device access for better hardware detection
+      - /dev/dri:/dev/dri:rw
+    # Enhanced device access for AMD GPUs in WSL2/Linux
+    devices:
+      - /dev/dri:/dev/dri:rwm
     # Conditional GPU access - works on both WSL2 and native Linux
     privileged: true  # Needed for GPU access in some environments
     restart: unless-stopped

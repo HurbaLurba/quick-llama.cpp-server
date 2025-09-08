@@ -2,21 +2,34 @@
 # Uses official llama.cpp Vulkan server image as base
 FROM ghcr.io/ggml-org/llama.cpp:server-vulkan
 
-# Install additional GPU drivers and tools for better hardware detection
+# Install comprehensive AMD GPU drivers and tools for better hardware detection
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # AMD GPU support
+    # AMD GPU support - comprehensive Vulkan and OpenCL stack
     mesa-vulkan-drivers \
     libdrm-amdgpu1 \
+    libamdgpu1 \
+    amdgpu-dkms \
+    # AMD ROCm for AI workloads (lightweight components)
+    rocm-dev-tools \
+    rocm-utils \
     # Intel GPU support  
     intel-media-va-driver \
     libdrm-intel1 \
     # NVIDIA GPU support (already in base image but ensure latest)
     libnvidia-compute-535 \
-    # General tools for hardware detection
+    # General tools for hardware detection and debugging
     lshw \
     pciutils \
     vulkan-tools \
-    && rm -rf /var/lib/apt/lists/*
+    clinfo \
+    vainfo \
+    # Additional Vulkan loaders and validation
+    libvulkan1 \
+    vulkan-validationlayers \
+    && rm -rf /var/lib/apt/lists/* \
+    # Create AMD GPU device nodes that might be missing
+    && mkdir -p /dev/dri \
+    && chmod 666 /dev/dri/* 2>/dev/null || true
 
 # Cache directory for huggingface downloads
 ENV LLAMA_CACHE="/root/.cache/llama"
@@ -24,15 +37,22 @@ ENV LLAMA_CACHE="/root/.cache/llama"
 # Default model script (can be overridden at runtime)
 ENV MODEL_SCRIPT="mistral-small-3.2-24b-vision-vulkan"
 
-# Enhanced Vulkan optimization environment variables for cross-platform GPU compatibility
+# Enhanced Vulkan optimization environment variables for AMD focus
 ENV VK_LAYER_PATH="/usr/share/vulkan/explicit_layer.d"
-ENV VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json"
+ENV VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json:/usr/share/vulkan/icd.d/nvidia_icd.json"
 ENV VULKAN_SDK="/usr"
-ENV VK_LOADER_DEBUG="none"
+ENV VK_LOADER_DEBUG="warn"
 ENV VK_INSTANCE_LAYERS=""
 
-# Vulkan device environment for auto-detection
+# AMD-specific Vulkan and compute environment variables
+ENV AMD_VULKAN_ICD="RADV"
+ENV RADV_PERFTEST="aco,llvm"
+ENV MESA_VK_VERSION_OVERRIDE="1.3"
+ENV MESA_LOADER_DRIVER_OVERRIDE="radeonsi"
+
+# Vulkan device environment for auto-detection (try all devices)
 ENV GGML_VULKAN_DEVICE="0"
+ENV GGML_VULKAN_CHECK_RESULTS="1"
 
 # Expose the OpenAI-compatible server
 EXPOSE 8080

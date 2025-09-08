@@ -61,17 +61,52 @@ if [ ! -z "$MMPROJ_REPO" ] && [ ! -z "$MMPROJ_FILE" ]; then
     echo "✅ Downloaded mmproj to: $MMPROJ_PATH"
 fi
 
-# Vulkan GPU detection and reporting
-echo "🌋 Vulkan GPU Detection:"
-vulkaninfo --summary 2>/dev/null || echo "ℹ️ Vulkan info not available, will fallback to CPU"
-if command -v nvidia-smi >/dev/null 2>&1; then
-    echo "🎮 NVIDIA GPU detected via nvidia-smi"
-elif lspci | grep -i amd >/dev/null 2>&1; then
-    echo "🔴 AMD GPU detected via lspci"
-elif lspci | grep -i intel >/dev/null 2>&1; then
-    echo "🔵 Intel GPU detected via lspci" 
+# Enhanced Vulkan GPU detection and reporting with AMD focus
+echo "🌋 Vulkan GPU Detection and Hardware Analysis:"
+
+# Detailed AMD GPU detection
+echo "🔍 Hardware Detection:"
+if command -v lspci >/dev/null 2>&1; then
+    echo "   PCI Devices:"
+    lspci | grep -i -E "(amd|ati|radeon)" | head -3 && echo "🔴 AMD GPU(s) detected via lspci"
+    lspci | grep -i intel | grep -i vga && echo "🔵 Intel iGPU detected via lspci"
+    lspci | grep -i nvidia && echo "🎮 NVIDIA GPU detected via lspci"
+fi
+
+# Check DRI devices (crucial for AMD GPU access)
+echo "🖥️ DRI Device Status:"
+if [ -d "/dev/dri" ]; then
+    ls -la /dev/dri/ 2>/dev/null && echo "✅ DRI devices available for GPU access"
 else
-    echo "🖥️ Using CPU acceleration"
+    echo "❌ No DRI devices found - GPU acceleration may not work"
+fi
+
+# Vulkan info with better error handling
+echo "🌋 Vulkan Driver Status:"
+if command -v vulkaninfo >/dev/null 2>&1; then
+    vulkaninfo --summary 2>/dev/null | head -20 || echo "⚠️ Vulkan detected but info failed"
+else
+    echo "❌ vulkaninfo command not available"
+fi
+
+# Check specific AMD Vulkan driver
+echo "🔴 AMD Vulkan Status:"
+if [ -f "/usr/share/vulkan/icd.d/radeon_icd.x86_64.json" ]; then
+    echo "✅ AMD Radeon Vulkan ICD found"
+    cat /usr/share/vulkan/icd.d/radeon_icd.x86_64.json 2>/dev/null | head -5
+else
+    echo "❌ AMD Radeon Vulkan ICD not found"
+fi
+
+# Final acceleration summary
+if command -v nvidia-smi >/dev/null 2>&1; then
+    echo "🎮 Primary: NVIDIA GPU acceleration"
+elif lspci | grep -i -E "(amd|ati|radeon)" >/dev/null 2>&1; then
+    echo "🔴 Primary: AMD GPU acceleration (Vulkan)"
+elif lspci | grep -i intel | grep -i vga >/dev/null 2>&1; then
+    echo "🔵 Primary: Intel iGPU acceleration (Vulkan)"
+else
+    echo "🖥️ Primary: CPU acceleration (no GPU detected)"
 fi
 
 # Base arguments for llama-server with Vulkan
