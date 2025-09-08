@@ -1,0 +1,20 @@
+# Custom LLaMA.cpp Server Container - Multi-Model Support via Scripts (Vulkan)
+FROM llama-base-vulkan:latest
+
+# Cache directory for huggingface downloads
+ENV LLAMA_CACHE="/root/.cache/llama"
+
+# Default model script (can be overridden at runtime)
+ENV MODEL_SCRIPT="mistral-small-3.2-24b-vision-vulkan"
+
+# Expose the OpenAI-compatible server
+EXPOSE 8080
+
+# Copy all startup scripts
+COPY scripts/ /workspace/scripts/
+RUN chmod +x /workspace/scripts/*.sh && \
+    find /workspace/scripts -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find /workspace/scripts -name "*.sh" -exec dos2unix {} \;
+
+# Dynamic startup script selection
+CMD ["/bin/bash", "-c", "/workspace/scripts/start-${MODEL_SCRIPT}.sh"]

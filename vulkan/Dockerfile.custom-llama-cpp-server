@@ -1,0 +1,49 @@
+# Custom LLaMA.cpp Server Container - Multi-Model Support via Scripts (Vulkan)
+# Uses official llama.cpp Vulkan server image as base
+FROM ghcr.io/ggml-org/llama.cpp:server-vulkan
+
+# Install additional GPU drivers and tools for better hardware detection
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # AMD GPU support
+    mesa-vulkan-drivers \
+    libdrm-amdgpu1 \
+    # Intel GPU support  
+    intel-media-va-driver \
+    libdrm-intel1 \
+    # NVIDIA GPU support (already in base image but ensure latest)
+    libnvidia-compute-535 \
+    # General tools for hardware detection
+    lshw \
+    pciutils \
+    vulkan-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cache directory for huggingface downloads
+ENV LLAMA_CACHE="/root/.cache/llama"
+
+# Default model script (can be overridden at runtime)
+ENV MODEL_SCRIPT="mistral-small-3.2-24b-vision-vulkan"
+
+# Enhanced Vulkan optimization environment variables for cross-platform GPU compatibility
+ENV VK_LAYER_PATH="/usr/share/vulkan/explicit_layer.d"
+ENV VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json"
+ENV VULKAN_SDK="/usr"
+ENV VK_LOADER_DEBUG="none"
+ENV VK_INSTANCE_LAYERS=""
+
+# Vulkan device environment for auto-detection
+ENV GGML_VULKAN_DEVICE="0"
+
+# Expose the OpenAI-compatible server
+EXPOSE 8080
+
+# Copy all startup scripts
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.sh && \
+    find /app/scripts -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find /app/scripts -name "*.sh" -exec dos2unix {} \;
+
+# Dynamic startup script selection
+# Override the official image's entrypoint to run our script
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "/app/scripts/start-${MODEL_SCRIPT}.sh"]

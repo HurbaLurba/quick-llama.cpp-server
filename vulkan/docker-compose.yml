@@ -1,0 +1,28 @@
+services:
+  # Custom LLaMA Server - Mistral Small 3.2 24B Vision with Vulkan support
+  # Works with AMD GPUs, Intel GPUs, NVIDIA GPUs, and CPU fallback
+  mistral-small-3.2-24b-vision-vulkan:
+    image: custom-llama-cpp-server-vulkan:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.custom-llama-cpp-server
+    container_name: mistral-small-3.2-24b-vision-vulkan
+    environment:
+      - MODEL_SCRIPT=mistral-small-3.2-24b-vision-vulkan
+      # Vulkan environment variables for cross-platform GPU support
+      - VK_LAYER_PATH=/usr/share/vulkan/explicit_layer.d
+      - VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json
+      - VULKAN_SDK=/usr
+      - VK_LOADER_DEBUG=none
+      - VK_INSTANCE_LAYERS=""
+      # Force Vulkan device selection (will auto-detect best available)
+      - GGML_VULKAN_DEVICE=0
+    ports:
+      - "8085:8080"
+    volumes:
+      - ${USERPROFILE:-~}/.cache/llama:/root/.cache/llama
+    # Conditional GPU access - works on both WSL2 and native Linux
+    privileged: true  # Needed for GPU access in some environments
+    restart: unless-stopped
+    # Network mode for better WSL2 compatibility
+    network_mode: "bridge"

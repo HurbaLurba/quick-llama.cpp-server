@@ -1,0 +1,23 @@
+# Custom LLaMA.cpp Server Container - Multi-Model Support via Scripts
+# Uses official llama.cpp CUDA server image as base
+FROM ghcr.io/ggml-org/llama.cpp:server-cuda
+
+# Cache directory for huggingface downloads
+ENV LLAMA_CACHE="/root/.cache/llama"
+
+# Default model script (can be overridden at runtime)
+ENV MODEL_SCRIPT="gemma3-27b-it-abliterated-vision"
+
+# Expose the OpenAI-compatible server
+EXPOSE 8080
+
+# Copy all startup scripts
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.sh && \
+    find /app/scripts -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find /app/scripts -name "*.sh" -exec dos2unix {} \;
+
+# Dynamic startup script selection
+# Override the official image's entrypoint to run our script
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "/app/scripts/start-${MODEL_SCRIPT}.sh"]
