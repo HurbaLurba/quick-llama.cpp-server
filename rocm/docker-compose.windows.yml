@@ -1,0 +1,39 @@
+services:
+  # AMD iGPU ROCm Base Container - Windows/Docker Desktop Compatible
+  rocm-igpu-base-windows:
+    image: rocm-igpu:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.rocm-base
+    container_name: rocm-igpu-base-windows
+    # No device access for Windows Docker Desktop - will test software mode
+    # Device access is commented out as these don't exist in Windows Docker Desktop:
+    # devices:
+    #   - /dev/kfd:/dev/kfd  # AMD KFD not available in Windows Docker
+    #   - /dev/dri:/dev/dri  # DRI not available in Windows Docker
+    
+    # Group permissions not needed in Windows Docker Desktop
+    # group_add:
+    #   - "${RENDER_GROUP_ID:-102}"
+    #   - "${VIDEO_GROUP_ID:-44}"
+    
+    # Interactive shell for testing
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    
+    # Environment variables for ROCm testing
+    environment:
+      - HIP_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=""
+      - HSA_OVERRIDE_GFX_VERSION=11.0.2
+      - HCC_AMDGPU_TARGET=gfx1103
+      - ROCM_PATH=/opt/rocm
+      - HIP_PLATFORM=amd
+    
+    # Command to run our GPU test script
+    command: ["python3", "/app/test_gpu.py"]
+    
+    # Mount our test script
+    volumes:
+      - ./test_gpu.py:/app/test_gpu.py:ro

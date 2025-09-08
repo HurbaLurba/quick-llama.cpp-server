@@ -19,10 +19,13 @@ echo 🚀 To build and test:
 echo    1. Build ROCm base image:
 echo       docker build -f Dockerfile.rocm-base -t rocm-igpu:latest .
 echo.
-echo    2. Test ROCm functionality (basic):
-echo       docker run -it --rm --device=/dev/kfd --device=/dev/dri rocm-igpu:latest
+echo    2. Test on Windows/Docker Desktop (no GPU access):
+echo       docker-compose -f docker-compose.windows.yml up rocm-igpu-base-windows
 echo.
-echo    3. Run docker-compose:
+echo    3. Test on Linux/WSL2 Native (with GPU access):
 echo       docker-compose up rocm-igpu-base
+echo.
+echo    4. Manual container test (software mode):
+echo       docker run -it --rm rocm-igpu:latest python3 /app/test_gpu.py
 
 pause
