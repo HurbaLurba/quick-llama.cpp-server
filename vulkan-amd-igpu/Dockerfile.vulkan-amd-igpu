@@ -24,12 +24,13 @@ RUN rm -rf /var/lib/apt/lists/* \
     wget \
     python3 \
     python3-pip \
+    python3-venv \
     # Virtual display for headless Vulkan
     xvfb \
     # AMD GPU support - comprehensive Vulkan and OpenCL stack (enhanced with ROCm)
     mesa-vulkan-drivers \
     libdrm-amdgpu1 \
-    # Vulkan tools and validation  
+    # Vulkan tools and validation
     vulkan-tools \
     libvulkan1 \
     vulkan-validationlayers \
@@ -37,12 +38,10 @@ RUN rm -rf /var/lib/apt/lists/* \
     rocm \
     clinfo \
     && rm -rf /var/lib/apt/lists/* \
-    # Install huggingface-hub for model downloads (Ubuntu 22.04 compatible)
-    && pip3 install --no-cache-dir huggingface-hub \
+    # Install huggingface-hub using system package manager (Ubuntu 24.04 compatible)
+    && python3 -m pip install --break-system-packages --no-cache-dir huggingface-hub \
     # Ensure DRI device access
-    && mkdir -p /dev/dri
-
-# Cache directory for huggingface downloads
+    && mkdir -p /dev/dri# Cache directory for huggingface downloads
 ENV LLAMA_CACHE="/root/.cache/llama"
 
 # Default model script (can be overridden at runtime)
