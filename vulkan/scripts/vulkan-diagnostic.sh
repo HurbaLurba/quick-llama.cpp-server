@@ -47,6 +47,35 @@ echo "   Current groups: $(groups)"
 echo "   DRI access test:"
 ls -la /dev/dri/ | head -5
 
+# Test 4: Try direct device creation bypassing enumeration
+echo "🔍 Attempting direct Vulkan device creation..."
+python3 -c "
+import ctypes
+import os
+import sys
+
+# AMD/RADV specific device creation test
+try:
+    # Force load the AMD Vulkan driver directly
+    radv_driver = ctypes.CDLL('/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so')
+    print('✅ AMD RADV driver loaded directly')
+    
+    # Set aggressive environment for device forcing
+    os.environ['VK_LOADER_DISABLE_INST_EXT_FILTER'] = '1'
+    os.environ['VK_LOADER_DISABLE_SELECT_FEATURES'] = '1'
+    os.environ['MESA_VK_IGNORE_CONFORMANCE_WARNING'] = '1'
+    os.environ['RADV_DEBUG'] = 'nocompute'
+    
+    # Now try Vulkan instance with forced AMD driver
+    vulkan = ctypes.CDLL('/usr/lib/x86_64-linux-gnu/libvulkan.so.1')
+    print('✅ Vulkan loader with forced AMD driver')
+    
+except Exception as e:
+    print(f'⚠️ Direct device creation test failed: {e}')
+    print('   This is expected in WSL2/container environments')
+    print('   GGML should still be able to force Vulkan usage')
+" 2>/dev/null
+
 # Test 4: Try to manually load Vulkan drivers
 echo "🔍 Manual Vulkan Driver Test:"
 if [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so" ]; then

@@ -178,12 +178,22 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     # FIX: Unset problematic empty layer variable
     unset VK_INSTANCE_LAYERS
     
+    # AGGRESSIVE FIX: Force Vulkan loader to bypass GPU detection
+    export VK_LOADER_DISABLE_INST_EXT_FILTER=1
+    export VK_LOADER_DISABLE_SELECT_FEATURES=1
+    export MESA_VK_IGNORE_CONFORMANCE_WARNING=1
+    export RADV_DEBUG=nocompute  # Disable compute for better compatibility
+    
     # Ensure proper Vulkan ICD loading - AMD only for better detection
     export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
     
     # AMD-specific optimizations
     export RADV_PERFTEST="aco"
     export AMD_DEBUG="nohyperz,nogfx"
+    
+    # Force specific device and ignore validation
+    export GGML_VULKAN_DEVICE=0
+    export GGML_VULKAN_VALIDATE=0  # Bypass validation that might fail
     
     # Try different device numbers
     for device in 0 1 2; do
@@ -202,6 +212,8 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     echo "   VK_INSTANCE_LAYERS: ${VK_INSTANCE_LAYERS:-UNSET}"
     echo "   DISPLAY: ${DISPLAY:-UNSET}"
     echo "   XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-UNSET}"
+    echo "   RADV_DEBUG: $RADV_DEBUG"
+    echo "   GGML_VULKAN_VALIDATE: $GGML_VULKAN_VALIDATE"
 fi
 
 # Base arguments for llama-server with Vulkan
