@@ -4,7 +4,7 @@ FROM ghcr.io/ggml-org/llama.cpp:server-vulkan
 
 # Install comprehensive AMD GPU drivers and tools for better hardware detection
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Essential system tools first
+    # Essential system tools first - these are critical
     pciutils \
     lshw \
     curl \
@@ -14,29 +14,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # AMD GPU support - comprehensive Vulkan and OpenCL stack
     mesa-vulkan-drivers \
     libdrm-amdgpu1 \
-    libamdgpu1 \
-    amdgpu-dkms \
-    # AMD ROCm for AI workloads (lightweight components)
-    rocm-dev-tools \
-    rocm-utils \
-    # Intel GPU support  
-    intel-media-va-driver \
-    libdrm-intel1 \
-    # NVIDIA GPU support (already in base image but ensure latest)
-    libnvidia-compute-535 \
-    # General tools for hardware detection and debugging
+    # Vulkan tools and validation  
     vulkan-tools \
-    clinfo \
-    vainfo \
-    # Additional Vulkan loaders and validation
     libvulkan1 \
     vulkan-validationlayers \
     && rm -rf /var/lib/apt/lists/* \
     # Install huggingface-hub for model downloads
     && pip3 install --no-cache-dir huggingface-hub \
-    # Create AMD GPU device nodes that might be missing
-    && mkdir -p /dev/dri \
-    && chmod 666 /dev/dri/* 2>/dev/null || true
+    # Ensure DRI device access
+    && mkdir -p /dev/dri
 
 # Cache directory for huggingface downloads
 ENV LLAMA_CACHE="/root/.cache/llama"

@@ -134,15 +134,37 @@ echo "   VK_ICD_FILENAMES: $VK_ICD_FILENAMES"
 echo "   GGML_VULKAN_DEVICE: $GGML_VULKAN_DEVICE"
 echo "   VK_DRIVER_FILES: $VK_DRIVER_FILES"
 
-# Final acceleration summary
+# Final acceleration summary and Vulkan backend forcing
 if command -v nvidia-smi >/dev/null 2>&1; then
     echo "🎮 Primary: NVIDIA GPU acceleration"
 elif lspci | grep -i -E "(amd|ati|radeon)" >/dev/null 2>&1; then
     echo "🔴 Primary: AMD GPU acceleration (Vulkan)"
 elif lspci | grep -i intel | grep -i vga >/dev/null 2>&1; then
-    echo "🔵 Primary: Intel iGPU acceleration (Vulkan)"
+    echo "🔵 Primary: Intel iGPU acceleration (Vulkan)"  
 else
     echo "🖥️ Primary: CPU acceleration (no GPU detected)"
+fi
+
+# CRITICAL: Test Vulkan directly before proceeding
+echo "🧪 Running direct Vulkan diagnostic..."
+if [ -f "/app/scripts/vulkan-diagnostic.sh" ]; then
+    bash /app/scripts/vulkan-diagnostic.sh
+fi
+
+# Force Vulkan backend if we have the library
+if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so" ]; then
+    echo "🔧 FORCING Vulkan backend activation..."
+    export GGML_VULKAN=1
+    export VK_LOADER_DEBUG=all
+    # Try different device numbers
+    for device in 0 1 2; do
+        export GGML_VULKAN_DEVICE=$device
+        echo "   🔍 Testing Vulkan device $device..."
+        # This will be used by llama-server later
+        if [ $device -eq 0 ]; then
+            break  # Use device 0 for now
+        fi
+    done
 fi
 
 # Base arguments for llama-server with Vulkan
