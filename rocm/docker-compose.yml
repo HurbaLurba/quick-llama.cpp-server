@@ -37,7 +37,37 @@ services:
       - "${VIDEO_GROUP_ID:-44}"
     # ROCm environment variables
     environment:
-      - MODEL_SCRIPT=gemma3-27b-it-abliterated-rocm
+      - MODEL_SCRIPT=${MODEL_SCRIPT:-gemma3-27b-it-abliterated-rocm}
+      - HSA_OVERRIDE_GFX_VERSION=11.0.2
+      - HCC_AMDGPU_TARGET=gfx1103
+      - ROCM_VERSION=6.4.1
+      - HSA_ENABLE_SDMA=0
+      - ROCR_VISIBLE_DEVICES=0
+      - HIP_VISIBLE_DEVICES=0
+    # Model cache volume
+    volumes:
+      - llama_cache:/root/.cache/llama
+    restart: unless-stopped
+
+  # ROCm Mistral Small 3.2 24B Vision (Alternative Service)
+  rocm-mistral-small:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocm-llama-server
+    container_name: rocm-mistral-small
+    ports:
+      - "8085:8080"
+    # Device access for AMD iGPU
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    # Group permissions for render and video groups
+    group_add:
+      - "${RENDER_GROUP_ID:-102}"
+      - "${VIDEO_GROUP_ID:-44}"
+    # ROCm environment variables
+    environment:
+      - MODEL_SCRIPT=mistral-small-3.2-24b-vision-rocm
       - HSA_OVERRIDE_GFX_VERSION=11.0.2
       - HCC_AMDGPU_TARGET=gfx1103
       - ROCM_VERSION=6.4.1

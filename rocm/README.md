@@ -32,15 +32,66 @@ docker run -it --rm --device=/dev/kfd --device=/dev/dri rocm-igpu:latest clinfo
 docker build -f Dockerfile.rocm-base -t rocm-igpu:latest .
 ```
 
-### 2. Test Installation (Windows/Docker Desktop)
+### 2. Build ROCm LLaMA.cpp Server
+```bash
+docker-compose build rocm-llama-server
+```
+
+### 3. Test Installation (Windows/Docker Desktop)
 ```bash
 docker run -it --rm rocm-igpu:latest clinfo
 ```
 
-### 3. Test with GPU Access (Linux Only)
+### 4. Test with GPU Access (Linux Only)
 ```bash
 docker run -it --rm --device=/dev/kfd --device=/dev/dri rocm-igpu:latest clinfo
 ```
+
+## Run Models (ROCm Backend)
+
+All models run on **port 8085** externally.
+
+### Linux/WSL2 with GPU Access
+
+#### Mistral Small 3.2 24B Vision (ROCm)
+```bash
+docker-compose up rocm-mistral-small
+```
+
+#### Gemma 3 27B IT Abliterated Vision (ROCm)  
+```bash
+docker-compose up rocm-llama-server
+```
+
+### Windows/Docker Desktop (CPU Testing)
+
+#### Mistral Small 3.2 24B Vision (Windows)
+```bash
+docker-compose -f docker-compose.windows.yml up rocm-mistral-small-windows
+```
+
+#### Gemma 3 27B IT Abliterated Vision (Windows)
+```bash
+docker-compose -f docker-compose.windows.yml up rocm-llama-server-windows
+```
+
+### Alternative: Use Environment Variable
+```bash
+# For Mistral (Linux)
+MODEL_SCRIPT=mistral-small-3.2-24b-vision-rocm docker-compose up rocm-llama-server
+
+# For Mistral (Windows)
+MODEL_SCRIPT=mistral-small-3.2-24b-vision-rocm docker-compose -f docker-compose.windows.yml up rocm-llama-server-windows
+
+# For Gemma (default)
+docker-compose up rocm-llama-server
+```
+
+## API Access (ROCm Models)
+
+Once running, the OpenAI-compatible API is available at:
+- `http://localhost:8085/v1/chat/completions`
+- `http://localhost:8085/v1/models`
 
 ## Target Hardware
 
