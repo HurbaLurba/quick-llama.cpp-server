@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     python3 \
     python3-pip \
+    # Virtual display for headless Vulkan
+    xvfb \
     # AMD GPU support - comprehensive Vulkan and OpenCL stack
     mesa-vulkan-drivers \
     libdrm-amdgpu1 \

@@ -162,7 +162,13 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     # FIX: Unset problematic empty layer variable
     unset VK_INSTANCE_LAYERS
     
-    # Ensure proper Vulkan ICD loading
+    # FIX: Set up headless display environment for Vulkan
+    export DISPLAY=:99
+    export XDG_RUNTIME_DIR=/tmp/xdg_runtime
+    mkdir -p "$XDG_RUNTIME_DIR"
+    chmod 700 "$XDG_RUNTIME_DIR"
+    
+    # Ensure proper Vulkan ICD loading - AMD only for better detection
     export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
     
     # AMD-specific optimizations
@@ -184,6 +190,8 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     echo "   GGML_VULKAN_DEVICE: $GGML_VULKAN_DEVICE"
     echo "   VK_ICD_FILENAMES: $VK_ICD_FILENAMES"
     echo "   VK_INSTANCE_LAYERS: ${VK_INSTANCE_LAYERS:-UNSET}"
+    echo "   DISPLAY: ${DISPLAY:-UNSET}"
+    echo "   XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-UNSET}"
 fi
 
 # Base arguments for llama-server with Vulkan
