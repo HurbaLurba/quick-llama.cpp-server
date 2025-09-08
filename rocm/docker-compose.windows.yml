@@ -31,9 +31,9 @@ services:
       - ROCM_PATH=/opt/rocm
       - HIP_PLATFORM=amd
     
-    # Command to run our GPU test script
-    command: ["python3", "/app/test_gpu.py"]
+    # Command to run our simple GPU test script (no PyTorch dependency)
+    command: ["python3", "/app/test_gpu_simple.py"]
     
     # Mount our test script
     volumes:
-      - ./test_gpu.py:/app/test_gpu.py:ro
+      - ./test_gpu_simple.py:/app/test_gpu_simple.py:ro
