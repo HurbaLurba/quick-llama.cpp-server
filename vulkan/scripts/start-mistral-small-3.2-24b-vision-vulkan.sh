@@ -50,8 +50,23 @@ fi
 # Download multimodal projection file if not present  
 if [ ! -z "$MMPROJ_REPO" ] && [ ! -z "$MMPROJ_FILE" ]; then
     echo "📥 Downloading multimodal projection file: $MMPROJ_FILE from $MMPROJ_REPO..."
-    huggingface-cli download "$MMPROJ_REPO" "$MMPROJ_FILE" --cache-dir /root/.cache/llama --local-dir-use-symlinks False
-    # Use the actual cache path structure that huggingface-cli creates
+    
+    # Try huggingface-cli first, fallback to python -m huggingface_hub if not available
+    if command -v huggingface-cli >/dev/null 2>&1; then
+        huggingface-cli download "$MMPROJ_REPO" "$MMPROJ_FILE" --cache-dir /root/.cache/llama --local-dir-use-symlinks False
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c "
+from huggingface_hub import hf_hub_download
+import os
+os.makedirs('/root/.cache/llama', exist_ok=True)
+file_path = hf_hub_download(repo_id='$MMPROJ_REPO', filename='$MMPROJ_FILE', cache_dir='/root/.cache/llama')
+print(f'Downloaded to: {file_path}')
+"
+    else
+        echo "⚠️ No download method available, attempting to continue without mmproj..."
+    fi
+    
+    # Use the actual cache path structure that huggingface creates
     MMPROJ_PATH="/root/.cache/llama/models--${MMPROJ_REPO/\//-}/snapshots/$(ls -t /root/.cache/llama/models--${MMPROJ_REPO/\//-}/snapshots/ 2>/dev/null | head -1)/$MMPROJ_FILE"
     # Check if file exists, if not try direct path
     if [ ! -f "$MMPROJ_PATH" ]; then
@@ -71,12 +86,16 @@ if command -v lspci >/dev/null 2>&1; then
     lspci | grep -i -E "(amd|ati|radeon)" | head -3 && echo "🔴 AMD GPU(s) detected via lspci"
     lspci | grep -i intel | grep -i vga && echo "🔵 Intel iGPU detected via lspci"
     lspci | grep -i nvidia && echo "🎮 NVIDIA GPU detected via lspci"
+else
+    echo "❌ lspci command not available - installing..."
 fi
 
 # Check DRI devices (crucial for AMD GPU access)
 echo "🖥️ DRI Device Status:"
 if [ -d "/dev/dri" ]; then
     ls -la /dev/dri/ 2>/dev/null && echo "✅ DRI devices available for GPU access"
+    echo "🔍 Checking DRI device permissions:"
+    ls -l /dev/dri/card* /dev/dri/render* 2>/dev/null
 else
     echo "❌ No DRI devices found - GPU acceleration may not work"
 fi
@@ -84,9 +103,14 @@ fi
 # Vulkan info with better error handling
 echo "🌋 Vulkan Driver Status:"
 if command -v vulkaninfo >/dev/null 2>&1; then
+    echo "🔍 Available Vulkan devices:"
     vulkaninfo --summary 2>/dev/null | head -20 || echo "⚠️ Vulkan detected but info failed"
+    echo "🔍 Vulkan instance extensions:"
+    vulkaninfo | grep -A 10 "Instance Extensions" 2>/dev/null || true
 else
     echo "❌ vulkaninfo command not available"
+    echo "🔍 Attempting basic Vulkan library check:"
+    ls -la /usr/lib/x86_64-linux-gnu/libvulkan* 2>/dev/null || echo "❌ Vulkan libraries not found"
 fi
 
 # Check specific AMD Vulkan driver
@@ -94,9 +118,21 @@ echo "🔴 AMD Vulkan Status:"
 if [ -f "/usr/share/vulkan/icd.d/radeon_icd.x86_64.json" ]; then
     echo "✅ AMD Radeon Vulkan ICD found"
     cat /usr/share/vulkan/icd.d/radeon_icd.x86_64.json 2>/dev/null | head -5
+    echo "🔍 Testing ICD library:"
+    ls -la /usr/lib/x86_64-linux-gnu/libvulkan_radeon.so* 2>/dev/null || echo "❌ Radeon Vulkan driver library not found"
 else
     echo "❌ AMD Radeon Vulkan ICD not found"
 fi
+
+# GGML/llama.cpp backend detection
+echo "🧠 GGML Backend Status:"
+ls -la /app/libggml*.so 2>/dev/null | grep -E "(vulkan|cuda)" || echo "⚠️ No GPU backends found"
+
+# Environment variable summary
+echo "🔧 Vulkan Environment Variables:"
+echo "   VK_ICD_FILENAMES: $VK_ICD_FILENAMES"
+echo "   GGML_VULKAN_DEVICE: $GGML_VULKAN_DEVICE"
+echo "   VK_DRIVER_FILES: $VK_DRIVER_FILES"
 
 # Final acceleration summary
 if command -v nvidia-smi >/dev/null 2>&1; then

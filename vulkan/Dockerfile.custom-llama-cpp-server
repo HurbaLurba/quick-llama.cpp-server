@@ -4,6 +4,13 @@ FROM ghcr.io/ggml-org/llama.cpp:server-vulkan
 
 # Install comprehensive AMD GPU drivers and tools for better hardware detection
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Essential system tools first
+    pciutils \
+    lshw \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
     # AMD GPU support - comprehensive Vulkan and OpenCL stack
     mesa-vulkan-drivers \
     libdrm-amdgpu1 \
@@ -18,8 +25,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # NVIDIA GPU support (already in base image but ensure latest)
     libnvidia-compute-535 \
     # General tools for hardware detection and debugging
-    lshw \
-    pciutils \
     vulkan-tools \
     clinfo \
     vainfo \
@@ -27,6 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvulkan1 \
     vulkan-validationlayers \
     && rm -rf /var/lib/apt/lists/* \
+    # Install huggingface-hub for model downloads
+    && pip3 install --no-cache-dir huggingface-hub \
     # Create AMD GPU device nodes that might be missing
     && mkdir -p /dev/dri \
     && chmod 666 /dev/dri/* 2>/dev/null || true
@@ -53,6 +60,11 @@ ENV MESA_LOADER_DRIVER_OVERRIDE="radeonsi"
 # Vulkan device environment for auto-detection (try all devices)
 ENV GGML_VULKAN_DEVICE="0"
 ENV GGML_VULKAN_CHECK_RESULTS="1"
+
+# Additional debugging and forcing Vulkan
+ENV VK_DRIVER_FILES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
+ENV GGML_VULKAN_FORCE_INITIALIZATION="1"
+ENV VK_LOADER_DRIVERS_SELECT="*radeon*"
 
 # Expose the OpenAI-compatible server
 EXPOSE 8080
