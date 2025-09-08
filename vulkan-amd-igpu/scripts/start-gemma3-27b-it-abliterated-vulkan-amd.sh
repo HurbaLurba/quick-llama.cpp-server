@@ -1,22 +1,18 @@
 #!/bin/bash
 
-# Gemma 3 27B IT Abliterated Vision Model Environment Configuration (ROCm)
+# Gemma 3 27B IT Abliterated Vision Model - Enhanced Vulkan AMD iGPU
+# Combines Toxantron OpenCL methodology with Vulkan optimization
+
+# Model Configuration
 export MODEL_REPO="mlabonne/gemma-3-27b-it-abliterated-GGUF"
 export MODEL_FILE="gemma-3-27b-it-abliterated-Q4_K_M.gguf"
 export MODEL_QUANT="Q4_K_M"
 export MMPROJ_REPO="mlabonne/gemma-3-27b-it-abliterated-GGUF"
 export MMPROJ_FILE="mmproj-mlabonne_gemma-3-27b-it-abliterated-f16.gguf"
-export MMPROJ_TYPE="F16"
 export CONTEXT_SIZE="131072"
-export MODEL_ALIAS="gemma3-27b-it-abliterated-rocm"
+export MODEL_ALIAS="gemma3-27b-it-abliterated-vulkan-amd"
 
-# Gemma 3 Configuration
-export REASONING_FORMAT="none"
-export REASONING_BUDGET="-1"
-export THINKING_FORCED_OPEN="false"
-export CHAT_TEMPLATE="gemma-v2"
-
-# ROCm Performance Optimization for AMD iGPU
+# Vulkan Performance Optimization for AMD iGPU
 export BATCH_SIZE="2048"
 export UBATCH_SIZE="512"  # Reduced for iGPU
 export PARALLEL_SEQUENCES="1"
@@ -26,43 +22,57 @@ export CACHE_TYPE_K="q4_0"
 export CACHE_TYPE_V="q4_0"
 export NO_MMAP="true"
 export MLOCK="true"
-export CACHE_REUSE="128"
-export PREDICT="-1"
 export MAX_TOKENS="8192"
-export CPU_MOE="false"  # Disable for iGPU optimization
-export N_CPU_MOE="1"
 
 # Sampling parameters
 export TEMPERATURE="0.7"
 export TOP_K="40"
 export TOP_P="0.95"
 
-# Gemma 3 27B IT Abliterated Vision Model Startup Script (ROCm)
-echo "🔥👁️🗿 Starting Gemma 3 27B IT Abliterated with vision capabilities via ROCm..."
+echo "🌋👁️🗿 Starting Gemma 3 27B with Enhanced Vulkan AMD iGPU Support..."
+echo "🔧 Methodology: Toxantron Device Access + Official Vulkan Image"
 
-# ROCm GPU Detection and Hardware Analysis (based on Toxantron setup)
-echo "🗿 ROCm GPU Detection and Hardware Analysis:"
-
-# ROCm environment verification
+# ROCm GPU Detection (we know this works from before!)
+echo ""
+echo "🗿 ROCm OpenCL Detection (Toxantron Methodology):"
 echo "🔧 ROCm Environment Variables:"
 echo "   HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-NOT SET}"
 echo "   HCC_AMDGPU_TARGET: ${HCC_AMDGPU_TARGET:-NOT SET}"
 echo "   ROCM_VERSION: ${ROCM_VERSION:-NOT SET}"
-echo "   HSA_ENABLE_SDMA: ${HSA_ENABLE_SDMA:-NOT SET}"
-echo "   ROCR_VISIBLE_DEVICES: ${ROCR_VISIBLE_DEVICES:-NOT SET}"
-echo "   HIP_VISIBLE_DEVICES: ${HIP_VISIBLE_DEVICES:-NOT SET}"
 
-# Test ROCm OpenCL platform detection
-echo "📊 ROCm OpenCL Platform Status:"
+# Test OpenCL (we know this works!)
+echo ""
+echo "📊 OpenCL Platform Status (Known Working):"
 if command -v clinfo >/dev/null 2>&1; then
     clinfo -l 2>&1 | head -10
     echo "   Device count:"
-    clinfo 2>&1 | grep -E "Number of devices|Device Name" || echo "   No devices detected (normal in Windows Docker)"
+    clinfo 2>&1 | grep -E "Number of devices|Device Name" || echo "   No devices detected (expected in Windows Docker)"
 else
     echo "   ❌ clinfo not available"
 fi
 
-# Check for AMD GPU device files (Linux only)
+# Enhanced Vulkan Detection
+echo ""
+echo "🌋 Vulkan Detection (Enhanced with ROCm base):"
+echo "🔧 Vulkan Environment Variables:"
+echo "   VK_ICD_FILENAMES: ${VK_ICD_FILENAMES:-NOT SET}"
+echo "   AMD_VULKAN_ICD: ${AMD_VULKAN_ICD:-NOT SET}"
+echo "   RADV_PERFTEST: ${RADV_PERFTEST:-NOT SET}"
+echo "   GGML_VULKAN_DEVICE: ${GGML_VULKAN_DEVICE:-NOT SET}"
+echo "   GGML_VULKAN: ${GGML_VULKAN:-NOT SET}"
+
+# Test Vulkan with enhanced diagnostics
+echo ""
+echo "🔍 Vulkan Instance and Device Detection:"
+if command -v vulkaninfo >/dev/null 2>&1; then
+    echo "   Running vulkaninfo..."
+    vulkaninfo --summary 2>&1 | head -30 || echo "   vulkaninfo failed"
+else
+    echo "   ❌ vulkaninfo not available"
+fi
+
+# Check for AMD GPU device files (crucial for both OpenCL and Vulkan)
+echo ""
 echo "🔗 AMD GPU Device Access:"
 if [ -e "/dev/kfd" ]; then
     echo "   ✅ /dev/kfd exists (AMD KFD driver)"
@@ -72,6 +82,7 @@ fi
 
 if [ -e "/dev/dri/card0" ]; then
     echo "   ✅ /dev/dri/card0 exists (DRM driver)"
+    ls -la /dev/dri/ 2>/dev/null | head -5
 else
     echo "   ❌ /dev/dri/card0 missing (expected in Windows Docker)"
 fi
@@ -82,22 +93,16 @@ else
     echo "   ❌ /dev/dri/renderD128 missing (expected in Windows Docker)"
 fi
 
-# ROCm-smi status (if available)
-echo "🖥️ ROCm System Management Interface:"
-if command -v rocm-smi >/dev/null 2>&1; then
-    echo "   ROCm SMI available, checking GPU status..."
-    rocm-smi --showid --showproduct 2>&1 || echo "   No GPUs detected via ROCm SMI (expected in Windows Docker)"
+# Hardware PCI detection
+echo ""
+echo "🔍 Hardware Detection:"
+if command -v lspci >/dev/null 2>&1; then
+    echo "   PCI Devices:"
+    lspci | grep -i -E "(amd|ati|radeon)" | head -3 && echo "   🔴 AMD GPU(s) detected via lspci"
+    lspci | grep -i intel | grep -i vga && echo "   🔵 Intel iGPU detected via lspci"
+    lspci | grep -i nvidia && echo "   🎮 NVIDIA GPU detected via lspci"
 else
-    echo "   ❌ rocm-smi not available"
-fi
-
-# HIP runtime check
-echo "🏃‍♂️ HIP Runtime Check:"
-if command -v hipconfig >/dev/null 2>&1; then
-    echo "   HIP Platform: $(hipconfig --platform 2>/dev/null || echo 'Unknown')"
-    echo "   HIP Version: $(hipconfig --version 2>/dev/null || echo 'Unknown')"
-else
-    echo "   ❌ hipconfig not available"
+    echo "   ❌ lspci command not available"
 fi
 
 echo ""
@@ -107,7 +112,7 @@ echo "   Vision: ${MMPROJ_REPO}/${MMPROJ_FILE}"
 echo "   Context: ${CONTEXT_SIZE} tokens"
 echo "   GPU Layers: ${N_GPU_LAYERS} (all layers)"
 echo "   Batch Size: ${BATCH_SIZE}"
-echo "   Temperature: ${TEMPERATURE}"
+echo "   Backend: Vulkan (Enhanced with ROCm OpenCL base)"
 
 # Create cache directory structure
 mkdir -p "${LLAMA_CACHE}/models"
@@ -149,7 +154,7 @@ else
     echo "✅ MMProj file already cached: ${MMPROJ_PATH}"
 fi
 
-# Verify files exist and have reasonable sizes
+# Verify files exist
 echo ""
 echo "🔍 File Verification:"
 if [ -f "${MODEL_PATH}" ]; then
@@ -169,9 +174,13 @@ else
 fi
 
 echo ""
-echo "🚀 Starting LLaMA.cpp server with ROCm backend..."
+echo "🚀 Starting LLaMA.cpp server with Enhanced Vulkan AMD iGPU support..."
+echo "🌋 Backend: Vulkan (with ROCm OpenCL base)"
+echo "🗿 Device Access: Toxantron methodology"
+echo "📦 Model: ${MODEL_REPO}/${MODEL_FILE}"
+echo "👁️ Vision: Enabled"
 
-# Start the server with ROCm optimizations
+# Start the server with Vulkan optimizations
 exec llama-server \
     --model "${MODEL_PATH}" \
     --mmproj "${MMPROJ_PATH}" \
@@ -187,14 +196,10 @@ exec llama-server \
     --flash-attn \
     --no-mmap \
     --mlock \
-    --cache-reuse "${CACHE_REUSE}" \
     --defrag-thold 0.1 \
-    --predict "${PREDICT}" \
     --temp "${TEMPERATURE}" \
     --top-k "${TOP_K}" \
     --top-p "${TOP_P}" \
-    --chat-template "${CHAT_TEMPLATE}" \
     --alias "${MODEL_ALIAS}" \
     --log-format text \
-    --log-file /app/server.log \
     --verbose

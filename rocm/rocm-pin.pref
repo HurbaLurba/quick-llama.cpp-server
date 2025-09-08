@@ -1,3 +1,0 @@
-Package: *
-Pin: release o=repo.radeon.com, n=jammy
-Pin-Priority: 600

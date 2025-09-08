@@ -1,0 +1,105 @@
+# Custom LLaMA.cpp Server Container - AMD iGPU Vulkan with Toxantron Methodology
+# Uses official llama.cpp Vulkan server image as base + Toxantron device access
+FROM ghcr.io/ggml-org/llama.cpp:server-vulkan
+
+# Update and install ROCm repository (Toxantron methodology)
+RUN apt update && apt install -y wget gpg
+RUN wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | \
+    gpg --dearmor | tee /etc/apt/keyrings/rocm.gpg > /dev/null
+RUN echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.4.1 jammy main" \
+    | tee --append /etc/apt/sources.list.d/rocm.list
+
+# Copy ROCm pin preferences (Toxantron setup)
+COPY rocm-pin.pref /etc/apt/preferences.d/rocm-pin-600
+
+# Install comprehensive AMD GPU drivers and tools + OpenCL support
+RUN rm -rf /var/lib/apt/lists/* \
+    && apt clean \
+    && apt update \
+    && apt install -y --no-install-recommends \
+    # Essential system tools first - these are critical
+    pciutils \
+    lshw \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
+    # Virtual display for headless Vulkan
+    xvfb \
+    # AMD GPU support - comprehensive Vulkan and OpenCL stack (enhanced with ROCm)
+    mesa-vulkan-drivers \
+    libdrm-amdgpu1 \
+    # Vulkan tools and validation  
+    vulkan-tools \
+    libvulkan1 \
+    vulkan-validationlayers \
+    # ROCm OpenCL support (from Toxantron - we know this works!)
+    rocm \
+    clinfo \
+    && rm -rf /var/lib/apt/lists/* \
+    # Install huggingface-hub for model downloads (Ubuntu 22.04 compatible)
+    && pip3 install --no-cache-dir huggingface-hub \
+    # Ensure DRI device access
+    && mkdir -p /dev/dri
+
+# Cache directory for huggingface downloads
+ENV LLAMA_CACHE="/root/.cache/llama"
+
+# Default model script (can be overridden at runtime)
+ENV MODEL_SCRIPT="gemma3-27b-it-abliterated-vulkan-amd"
+
+# ROCm environment variables from Toxantron (we know these work for OpenCL)
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.2
+ENV HCC_AMDGPU_TARGET=gfx1103
+ENV ROCM_VERSION=6.4.1
+ENV HSA_ENABLE_SDMA=0
+ENV ROCR_VISIBLE_DEVICES=0
+ENV HIP_VISIBLE_DEVICES=0
+
+# Enhanced Vulkan optimization environment variables for AMD focus
+ENV VK_LAYER_PATH="/usr/share/vulkan/explicit_layer.d"
+ENV VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json:/usr/share/vulkan/icd.d/nvidia_icd.json"
+ENV VULKAN_SDK="/usr"
+ENV VK_LOADER_DEBUG="warn"
+# DO NOT SET VK_INSTANCE_LAYERS - causes empty layer errors
+
+# AMD-specific Vulkan and compute environment variables
+ENV AMD_VULKAN_ICD="RADV"
+ENV RADV_PERFTEST="aco,llvm"
+ENV MESA_VK_VERSION_OVERRIDE="1.3"
+ENV MESA_LOADER_DRIVER_OVERRIDE="radeonsi"
+
+# Vulkan device environment for auto-detection (try all devices)
+ENV GGML_VULKAN_DEVICE="0"
+ENV GGML_VULKAN_CHECK_RESULTS="1"
+
+# Additional debugging and forcing Vulkan
+ENV VK_DRIVER_FILES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
+ENV GGML_VULKAN_FORCE_INITIALIZATION="1"
+ENV VK_LOADER_DRIVERS_SELECT="*radeon*"
+
+# Force GGML to use Vulkan backend (bypass detection)
+ENV GGML_VULKAN="1"
+ENV GGML_FORCE_VULKAN="1"
+ENV GGML_VULKAN_VALIDATE="0"
+
+# WSL2/Container Vulkan loader fixes
+ENV VK_LOADER_DISABLE_INST_EXT_FILTER="1"
+ENV VK_LOADER_DISABLE_SELECT_FEATURES="1" 
+ENV MESA_VK_IGNORE_CONFORMANCE_WARNING="1"
+
+# Expose the OpenAI-compatible server
+EXPOSE 8080
+
+# Copy all startup scripts
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.sh && \
+    find /app/scripts -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find /app/scripts -name "*.sh" -exec dos2unix {} \; 2>/dev/null || true
+
+WORKDIR /app
+
+# Dynamic startup script selection
+# Override the official image's entrypoint to run our script
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "/app/scripts/start-${MODEL_SCRIPT}.sh"]
