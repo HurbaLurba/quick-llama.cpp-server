@@ -155,16 +155,31 @@ fi
 if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so" ]; then
     echo "🔧 FORCING Vulkan backend activation..."
     export GGML_VULKAN=1
-    export VK_LOADER_DEBUG=all
+    export GGML_FORCE_VULKAN=1
+    export VK_LOADER_DEBUG=error  # Less verbose but still informative
+    export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+    
+    # Ensure proper Vulkan ICD loading
+    export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
+    
+    # AMD-specific optimizations
+    export RADV_PERFTEST="aco"
+    export AMD_DEBUG="nohyperz,nogfx"
+    
     # Try different device numbers
     for device in 0 1 2; do
         export GGML_VULKAN_DEVICE=$device
-        echo "   🔍 Testing Vulkan device $device..."
+        echo "   🔍 Configured for Vulkan device $device..."
         # This will be used by llama-server later
         if [ $device -eq 0 ]; then
             break  # Use device 0 for now
         fi
     done
+    
+    echo "🔧 Final Vulkan environment:"
+    echo "   GGML_VULKAN: $GGML_VULKAN"
+    echo "   GGML_VULKAN_DEVICE: $GGML_VULKAN_DEVICE"
+    echo "   VK_ICD_FILENAMES: $VK_ICD_FILENAMES"
 fi
 
 # Base arguments for llama-server with Vulkan

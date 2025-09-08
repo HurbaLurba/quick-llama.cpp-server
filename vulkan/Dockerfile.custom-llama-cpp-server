@@ -19,8 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvulkan1 \
     vulkan-validationlayers \
     && rm -rf /var/lib/apt/lists/* \
-    # Install huggingface-hub for model downloads
-    && pip3 install --no-cache-dir huggingface-hub \
+    # Install huggingface-hub for model downloads (force override system packages)
+    && pip3 install --no-cache-dir --break-system-packages huggingface-hub \
     # Ensure DRI device access
     && mkdir -p /dev/dri
 
@@ -51,6 +51,10 @@ ENV GGML_VULKAN_CHECK_RESULTS="1"
 ENV VK_DRIVER_FILES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
 ENV GGML_VULKAN_FORCE_INITIALIZATION="1"
 ENV VK_LOADER_DRIVERS_SELECT="*radeon*"
+
+# Force GGML to use Vulkan backend (bypass detection)
+ENV GGML_VULKAN="1"
+ENV GGML_FORCE_VULKAN="1"
 
 # Expose the OpenAI-compatible server
 EXPOSE 8080
