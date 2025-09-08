@@ -35,7 +35,7 @@ ENV VK_LAYER_PATH="/usr/share/vulkan/explicit_layer.d"
 ENV VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json:/usr/share/vulkan/icd.d/nvidia_icd.json"
 ENV VULKAN_SDK="/usr"
 ENV VK_LOADER_DEBUG="warn"
-ENV VK_INSTANCE_LAYERS=""
+# DO NOT SET VK_INSTANCE_LAYERS - causes empty layer errors
 
 # AMD-specific Vulkan and compute environment variables
 ENV AMD_VULKAN_ICD="RADV"

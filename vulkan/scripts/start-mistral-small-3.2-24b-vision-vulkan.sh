@@ -159,6 +159,9 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     export VK_LOADER_DEBUG=error  # Less verbose but still informative
     export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
     
+    # FIX: Unset problematic empty layer variable
+    unset VK_INSTANCE_LAYERS
+    
     # Ensure proper Vulkan ICD loading
     export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
     
@@ -180,6 +183,7 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     echo "   GGML_VULKAN: $GGML_VULKAN"
     echo "   GGML_VULKAN_DEVICE: $GGML_VULKAN_DEVICE"
     echo "   VK_ICD_FILENAMES: $VK_ICD_FILENAMES"
+    echo "   VK_INSTANCE_LAYERS: ${VK_INSTANCE_LAYERS:-UNSET}"
 fi
 
 # Base arguments for llama-server with Vulkan
