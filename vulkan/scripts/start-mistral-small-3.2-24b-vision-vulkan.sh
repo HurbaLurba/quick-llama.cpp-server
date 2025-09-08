@@ -79,6 +79,22 @@ fi
 # Enhanced Vulkan GPU detection and reporting with AMD focus
 echo "🌋 Vulkan GPU Detection and Hardware Analysis:"
 
+# Set up headless display environment BEFORE any Vulkan testing
+echo "🖥️ Setting up headless display environment..."
+export DISPLAY=:99
+export XDG_RUNTIME_DIR=/tmp/xdg_runtime
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+
+# Start Xvfb in background for proper headless Vulkan support
+if command -v Xvfb >/dev/null 2>&1; then
+    echo "🚀 Starting virtual display server..."
+    Xvfb :99 -screen 0 1024x768x24 -nolisten tcp &
+    XVFB_PID=$!
+    sleep 2  # Give Xvfb time to start
+    echo "✅ Virtual display started (PID: $XVFB_PID)"
+fi
+
 # Detailed AMD GPU detection
 echo "🔍 Hardware Detection:"
 if command -v lspci >/dev/null 2>&1; then
@@ -161,12 +177,6 @@ if [ -f "/app/libggml-vulkan.so" ] && [ -f "/usr/lib/x86_64-linux-gnu/libvulkan_
     
     # FIX: Unset problematic empty layer variable
     unset VK_INSTANCE_LAYERS
-    
-    # FIX: Set up headless display environment for Vulkan
-    export DISPLAY=:99
-    export XDG_RUNTIME_DIR=/tmp/xdg_runtime
-    mkdir -p "$XDG_RUNTIME_DIR"
-    chmod 700 "$XDG_RUNTIME_DIR"
     
     # Ensure proper Vulkan ICD loading - AMD only for better detection
     export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
@@ -281,5 +291,14 @@ echo "🌡️ Temperature: $TEMPERATURE"
 echo "🎯 Top-K: $TOP_K"
 echo "📊 Top-P: $TOP_P"
 echo "🔧 Args: ${ARGS[@]}"
+
+# Cleanup function for Xvfb
+cleanup() {
+    if [ ! -z "$XVFB_PID" ]; then
+        echo "🛑 Stopping virtual display server..."
+        kill $XVFB_PID 2>/dev/null
+    fi
+}
+trap cleanup EXIT
 
 exec "${ARGS[@]}"
