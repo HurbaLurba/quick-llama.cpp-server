@@ -1,0 +1,65 @@
+# ROCm-enabled LLaMA.cpp Server for AMD iGPU
+# Based on Toxantron/iGPU-Docker ROCm setup
+FROM rocm-igpu:latest
+
+# Install additional dependencies for llama.cpp
+RUN apt update && apt install -y --no-install-recommends \
+    # Build tools and dependencies
+    cmake \
+    make \
+    g++ \
+    git \
+    # System tools for GPU detection
+    pciutils \
+    lshw \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
+    # ROCm development headers if needed
+    rocm-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    # Install huggingface-hub for model downloads (force override system packages)
+    && pip3 install --no-cache-dir --break-system-packages huggingface-hub
+
+# Cache directory for huggingface downloads
+ENV LLAMA_CACHE="/root/.cache/llama"
+
+# Default model script (can be overridden at runtime)
+ENV MODEL_SCRIPT="mistral-small-3.2-24b-vision-rocm"
+
+# ROCm environment variables from Toxantron setup
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.2
+ENV HCC_AMDGPU_TARGET=gfx1103
+ENV ROCM_VERSION=6.4.1
+
+# Additional ROCm optimization environment variables
+ENV HSA_ENABLE_SDMA=0
+ENV ROCR_VISIBLE_DEVICES=0
+ENV HIP_VISIBLE_DEVICES=0
+
+# Clone and build llama.cpp with ROCm support
+WORKDIR /tmp
+RUN git clone https://github.com/ggerganov/llama.cpp.git && \
+    cd llama.cpp && \
+    mkdir build && cd build && \
+    cmake .. -DGGML_HIPBLAS=ON -DCMAKE_C_COMPILER=/opt/rocm/llvm/bin/clang -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DGPU_TARGETS=gfx1103 && \
+    cmake --build . --config Release -j$(nproc) && \
+    cp bin/llama-server /usr/local/bin/ && \
+    cp bin/llama-cli /usr/local/bin/ && \
+    cd / && rm -rf /tmp/llama.cpp
+
+# Expose the OpenAI-compatible server
+EXPOSE 8080
+
+# Copy startup scripts
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.sh && \
+    find /app/scripts -name "*.sh" -exec sed -i 's/\r$//' {} \; && \
+    find /app/scripts -name "*.sh" -exec dos2unix {} \; 2>/dev/null || true
+
+WORKDIR /app
+
+# Dynamic startup script selection
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "/app/scripts/start-${MODEL_SCRIPT}.sh"]

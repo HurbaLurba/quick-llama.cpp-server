@@ -1,6 +1,6 @@
 services:
   # Custom LLaMA Server - Mistral Small 3.2 24B Vision with Vulkan support
-  # Works with AMD GPUs, Intel GPUs, NVIDIA GPUs, and CPU fallback
+  # Enhanced device access based on Toxantron/iGPU-Docker methodology
   mistral-small-3.2-24b-vision-vulkan:
     image: custom-llama-cpp-server-vulkan:latest
     build:
@@ -23,17 +23,20 @@ services:
       # Force Vulkan device selection and enable debugging
       - GGML_VULKAN_DEVICE=0
       - GGML_VULKAN_CHECK_RESULTS=1
+      # AMD iGPU specific (8945HS has gfx1103 architecture like 780M)
+      - HSA_OVERRIDE_GFX_VERSION=11.0.2
     ports:
       - "8085:8080"
     volumes:
       - ${USERPROFILE:-~}/.cache/llama:/root/.cache/llama
-      # GPU device access for better hardware detection
-      - /dev/dri:/dev/dri:rw
-    # Enhanced device access for AMD GPUs in WSL2/Linux
+    # Enhanced device access following Toxantron methodology
     devices:
-      - /dev/dri:/dev/dri:rwm
-    # Conditional GPU access - works on both WSL2 and native Linux
-    privileged: true  # Needed for GPU access in some environments
+      - /dev/dri:/dev/dri
+    # Group permissions - use same pattern as ROCm setup
+    group_add:
+      - "${RENDER_GROUP_ID:-102}"
+      - "${VIDEO_GROUP_ID:-44}"
+    # Remove privileged mode - not needed with proper group setup
     restart: unless-stopped
     # Network mode for better WSL2 compatibility
     network_mode: "bridge"
