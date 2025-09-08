@@ -19,8 +19,8 @@ RUN apt update && apt install -y --no-install-recommends \
     # ROCm development headers if needed
     rocm-dev \
     && rm -rf /var/lib/apt/lists/* \
-    # Install huggingface-hub for model downloads (force override system packages)
-    && pip3 install --no-cache-dir --break-system-packages huggingface-hub
+    # Install huggingface-hub for model downloads (Ubuntu 22.04 compatible)
+    && pip3 install --no-cache-dir huggingface-hub
 
 # Cache directory for huggingface downloads
 ENV LLAMA_CACHE="/root/.cache/llama"
