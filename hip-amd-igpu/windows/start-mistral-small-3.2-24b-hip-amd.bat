@@ -6,7 +6,6 @@ setlocal EnableDelayedExpansion
 REM Activate the hip-llama-env virtual environment
 if not exist "%~dp0hip-llama-env\Scripts\activate.bat" (
     echo [ERROR] Virtual environment not found! Please run install-hip-llama.bat first
-    pause
     exit /b 1
 )
 
@@ -17,13 +16,14 @@ echo [INFO] Starting Mistral Small 3.2 24B - Windows Native HIP AMD GPU
 echo [INFO] Backend: HIP (AMD's CUDA equivalent)
 echo [INFO] Target: AMD 8945HS with Radeon 780M integrated graphics
 
-REM Model Configuration
-set MODEL_REPO=bartowski/mistral-small-3.2-24b-instruct-2501-GGUF
-set MODEL_FILE=mistral-small-3.2-24b-instruct-2501-Q4_K_M.gguf
-set MMPROJ_REPO=bartowski/mistral-small-3.2-24b-instruct-2501-GGUF
-set MMPROJ_FILE=mmproj-mistral-small-3.2-24b-instruct-2501-f16.gguf
+REM Model Configuration (aligned with Linux vision script)
+set MODEL_REPO=unsloth/Mistral-Small-3.2-24B-Instruct-2506-GGUF
+set MODEL_QUANT=UD-Q4_K_XL
+set MODEL_FILE=Mistral-Small-3.2-24B-Instruct-2506-UD-Q4_K_XL.gguf
+set MMPROJ_REPO=unsloth/Mistral-Small-3.2-24B-Instruct-2506-GGUF
+set MMPROJ_FILE=mmproj-F32.gguf
 set CONTEXT_SIZE=131072
-set MODEL_ALIAS=mistral-small-3.2-24b-hip-amd
+set MODEL_ALIAS=mistral-small-3.2-24b-vision
 
 REM HIP AMD GPU Environment Variables for Windows
 set HIP_VISIBLE_DEVICES=0
@@ -34,14 +34,23 @@ set GGML_HIP_DEVICE=0
 
 REM Performance settings optimized for AMD iGPU with HIP
 set BATCH_SIZE=2048
-set UBATCH_SIZE=512
+set UBATCH_SIZE=1024
 set N_GPU_LAYERS=-1
 set CACHE_TYPE_K=q4_0
 set CACHE_TYPE_V=q4_0
-set TEMPERATURE=0.7
-set TOP_K=40
-set TOP_P=0.95
+set TEMPERATURE=0.15
+set TOP_K=32
+set TOP_P=1.00
 set PARALLEL_SEQUENCES=1
+
+REM Reasoning and advanced options (aligned with Linux script)
+set REASONING_FORMAT=deepseek
+set REASONING_BUDGET=-1
+set MAX_TOKENS=8192
+set CPU_MOE=true
+set N_CPU_MOE=2
+set CACHE_REUSE=128
+set PREDICT=-1
 
 REM Cache directory
 set LLAMA_CACHE=%USERPROFILE%\.cache\llama
@@ -64,7 +73,6 @@ set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
 if not exist "%LLAMA_SERVER%" (
     echo [ERROR] llama-server.exe not found at: %LLAMA_SERVER%
     echo Please run: install-hip-llama.bat first
-    pause
     exit /b 1
 )
 
@@ -91,39 +99,29 @@ if "%GPU_NAME%"=="GPU detection failed" (
     echo    [OK] %GPU_NAME%
 )
 
-REM Download model if not present
-set MODEL_PATH=%LLAMA_CACHE%\models\%MODEL_FILE%
-if not exist "%MODEL_PATH%" (
-    echo.
-    echo Downloading model: %MODEL_REPO%/%MODEL_FILE%
-    echo    Size: ~15GB - this will take time depending on connection speed
-    
-    huggingface-cli download "%MODEL_REPO%" "%MODEL_FILE%" --local-dir "%LLAMA_CACHE%\models" --local-dir-use-symlinks False
-    if errorlevel 1 (
-        echo [ERROR] Model download failed!
-        echo Please check internet connection and try again
-        pause
-        exit /b 1
-    )
-    echo [OK] Model download completed
-) else (
-    echo [OK] Model file already cached: %MODEL_PATH%
-)
+REM Use llama-server built-in Hugging Face loading for the model (-hf)
+set HF_SPEC=%MODEL_REPO%:%MODEL_QUANT%
 
-REM Download multimodal projection if not present  
-set MMPROJ_PATH=%LLAMA_CACHE%\mmproj\%MMPROJ_FILE%
+REM Download multimodal projection into Hugging Face cache structure if not present
+set MMPROJ_PATH=
+for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
 if not exist "%MMPROJ_PATH%" (
     echo.
     echo Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
     echo    Size: ~2GB - vision capabilities
     
-    huggingface-cli download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --local-dir "%LLAMA_CACHE%\mmproj" --local-dir-use-symlinks False
+    hf download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --cache-dir "%LLAMA_CACHE%"
     if errorlevel 1 (
         echo [ERROR] MMProj download failed!
         echo Vision capabilities will not be available
         set MMPROJ_PATH=
     ) else (
-        echo [OK] MMProj download completed
+    for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
+        if exist "%MMPROJ_PATH%" (
+            echo [OK] MMProj file cached: %MMPROJ_PATH%
+        ) else (
+            echo [WARNING] MMProj file not found in cache after download
+        )
     )
 ) else (
     echo [OK] MMProj file already cached: %MMPROJ_PATH%
@@ -132,22 +130,31 @@ if not exist "%MMPROJ_PATH%" (
 echo.
 echo Starting LLaMA.cpp server with HIP AMD GPU acceleration...
 echo Backend: HIP (Native Windows AMD)
-echo Model: %MODEL_REPO%/%MODEL_FILE%
+echo Model: %MODEL_REPO%:%MODEL_QUANT%
 if defined MMPROJ_PATH (
     echo Vision: Enabled
 ) else (
-    echo Vision: Disabled (MMProj not available)
+    echo Vision: Disabled ^(MMProj not available^)
 )
 echo.
 echo Server will be available at: http://localhost:8080
 echo Press Ctrl+C to stop the server
 echo.
 
+REM Build dynamic extras like --cpu-moe, --n-cpu-moe, --cache-reuse, --predict
+set DYN_EXTRAS=
+if /i "%CPU_MOE%"=="true" (
+    set DYN_EXTRAS=!DYN_EXTRAS! --cpu-moe
+    if defined N_CPU_MOE set DYN_EXTRAS=!DYN_EXTRAS! --n-cpu-moe %N_CPU_MOE%
+)
+if defined CACHE_REUSE set DYN_EXTRAS=!DYN_EXTRAS! --cache-reuse %CACHE_REUSE%
+if defined PREDICT set DYN_EXTRAS=!DYN_EXTRAS! --predict %PREDICT%
+
 REM Start the server with HIP optimizations
 if defined MMPROJ_PATH (
     REM With vision support
     "%LLAMA_SERVER%" ^
-        --model "%MODEL_PATH%" ^
+        -hf "%HF_SPEC%" ^
         --mmproj "%MMPROJ_PATH%" ^
         --host 0.0.0.0 ^
         --port 8080 ^
@@ -158,7 +165,11 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
-        --flash-attn ^
+        --reasoning-format %REASONING_FORMAT% ^
+        --reasoning-budget %REASONING_BUDGET% ^
+        --swa-full ^
+        --jinja ^
+        -n %MAX_TOKENS% ^
         --no-mmap ^
         --mlock ^
         --defrag-thold 0.1 ^
@@ -167,11 +178,12 @@ if defined MMPROJ_PATH (
         --top-p %TOP_P% ^
         --alias %MODEL_ALIAS% ^
         --log-format text ^
-        --verbose
+        --verbose ^
+        %DYN_EXTRAS%
 ) else (
     REM Without vision support
     "%LLAMA_SERVER%" ^
-        --model "%MODEL_PATH%" ^
+        -hf "%HF_SPEC%" ^
         --host 0.0.0.0 ^
         --port 8080 ^
         --ctx-size %CONTEXT_SIZE% ^
@@ -181,7 +193,11 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
-        --flash-attn ^
+        --reasoning-format %REASONING_FORMAT% ^
+        --reasoning-budget %REASONING_BUDGET% ^
+        --swa-full ^
+        --jinja ^
+        -n %MAX_TOKENS% ^
         --no-mmap ^
         --mlock ^
         --defrag-thold 0.1 ^
@@ -190,7 +206,8 @@ if defined MMPROJ_PATH (
         --top-p %TOP_P% ^
         --alias %MODEL_ALIAS% ^
         --log-format text ^
-        --verbose
+        --verbose ^
+        %DYN_EXTRAS%
 )
 
 echo.
