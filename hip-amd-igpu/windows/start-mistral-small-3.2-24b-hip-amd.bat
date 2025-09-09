@@ -204,12 +204,10 @@ if defined MMPROJ_PATH (
         -n %MAX_TOKENS% ^
         --no-mmap ^
         --mlock ^
-        --defrag-thold 0.1 ^
         --temp %TEMPERATURE% ^
         --top-k %TOP_K% ^
         --top-p %TOP_P% ^
         --alias %MODEL_ALIAS% ^
-        --log-format text ^
         --verbose ^
         %DYN_EXTRAS%
 ) else (
@@ -231,12 +229,10 @@ if defined MMPROJ_PATH (
         -n %MAX_TOKENS% ^
         --no-mmap ^
         --mlock ^
-        --defrag-thold 0.1 ^
         --temp %TEMPERATURE% ^
         --top-k %TOP_K% ^
         --top-p %TOP_P% ^
         --alias %MODEL_ALIAS% ^
-        --log-format text ^
         --verbose ^
         %DYN_EXTRAS%
 )
