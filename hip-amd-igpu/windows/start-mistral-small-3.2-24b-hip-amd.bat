@@ -28,9 +28,14 @@ set MODEL_ALIAS=mistral-small-3.2-24b-vision
 REM HIP AMD GPU Environment Variables for Windows
 set HIP_VISIBLE_DEVICES=0
 set AMD_LOG_LEVEL=1
-set HSA_OVERRIDE_GFX_VERSION=11.0.2
-set HCC_AMDGPU_TARGET=gfx1103
+set HSA_OVERRIDE_GFX_VERSION=10.3.0
+set HCC_AMDGPU_TARGET=gfx1030
 set GGML_HIP_DEVICE=0
+
+REM Additional HIP environment for kernel compatibility
+set ROCBLAS_LAYER=3
+set HIP_FORCE_DEV_KERNARG=1
+set ROCBLAS_TENSILE_LIBPATH=%~dp0bin\rocblas\library
 
 REM Performance settings optimized for AMD iGPU with HIP
 set BATCH_SIZE=512

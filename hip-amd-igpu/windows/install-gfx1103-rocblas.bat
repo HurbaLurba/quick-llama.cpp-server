@@ -1,5 +1,31 @@
 @echo off
-REM Install gfx1103 rocBLAS libraries for AMD 780M GPU
+REM Install gfx1103 rocBLAS librREM Check if file already exists (manual download)
+if exist "%ZIP_FILE%" (
+    echo [OK] Found existing file: %ZIP_FILE%
+    goto extract_file
+)
+
+REM Try downloading with PowerShell with better error handling
+echo [INFO] Downloading rocBLAS libraries for gfx1103...
+echo URL: %DOWNLOAD_URL%
+powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%DOWNLOAD_URL%' -OutFile '%ZIP_FILE%' -UseBasicParsing -TimeoutSec 300 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Automatic download failed
+    echo.
+    echo MANUAL DOWNLOAD REQUIRED:
+    echo 1. Open browser and go to: %DOWNLOAD_URL%
+    echo 2. Save the file as: %ZIP_FILE%
+    echo 3. Run this script again
+    echo.
+    echo Alternative: Download from releases page:
+    echo https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/releases/tag/v0.6.2.4
+    echo.
+    pause
+    exit /b 1
+)
+
+:extract_filer AMD 780M GPU
 REM Fixes missing TensileLibrary.dat for gfx1103 architecture
 setlocal EnableDelayedExpansion
 
