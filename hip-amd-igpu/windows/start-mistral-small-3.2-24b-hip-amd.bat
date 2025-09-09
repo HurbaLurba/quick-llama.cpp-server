@@ -58,15 +58,17 @@ echo    Batch Size: %BATCH_SIZE%
 echo    Backend: HIP (Windows Native AMD)
 echo    Cache: %LLAMA_CACHE%
 
-REM Check if llama-server.exe exists
-if not exist "llama-server.exe" (
-    echo [ERROR] llama-server.exe not found in current directory!
+REM Resolve llama-server path in bin directory
+set BIN_DIR=%~dp0..\bin
+set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
+if not exist "%LLAMA_SERVER%" (
+    echo [ERROR] llama-server.exe not found at: %LLAMA_SERVER%
     echo Please run: install-hip-llama.bat first
     pause
     exit /b 1
 )
 
-echo [OK] Found llama-server.exe with HIP support
+echo [OK] Found llama-server.exe: %LLAMA_SERVER%
 
 REM HIP System Detection
 echo.
@@ -144,7 +146,7 @@ echo.
 REM Start the server with HIP optimizations
 if defined MMPROJ_PATH (
     REM With vision support
-    llama-server.exe ^
+    "%LLAMA_SERVER%" ^
         --model "%MODEL_PATH%" ^
         --mmproj "%MMPROJ_PATH%" ^
         --host 0.0.0.0 ^
@@ -168,7 +170,7 @@ if defined MMPROJ_PATH (
         --verbose
 ) else (
     REM Without vision support
-    llama-server.exe ^
+    "%LLAMA_SERVER%" ^
         --model "%MODEL_PATH%" ^
         --host 0.0.0.0 ^
         --port 8080 ^
@@ -193,4 +195,3 @@ if defined MMPROJ_PATH (
 
 echo.
 echo Server stopped
-pause

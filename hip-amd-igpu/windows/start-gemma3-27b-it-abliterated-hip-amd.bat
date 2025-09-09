@@ -19,7 +19,9 @@ if exist "hip-llama-env\Scripts\activate.bat" (
     echo [INFO] Virtual environment not found - using system Python
 )
 
-REM Model Configuration
+REM Paths and configuration
+set BIN_DIR=%~dp0..\bin
+set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
 set MODEL_REPO=mlabonne/gemma-3-27b-it-abliterated-GGUF
 set MODEL_FILE=gemma-3-27b-it-abliterated-Q4_K_M.gguf
 set MMPROJ_REPO=mlabonne/gemma-3-27b-it-abliterated-GGUF
@@ -61,14 +63,14 @@ echo    Backend: HIP (Windows Native AMD)
 echo    Cache: %LLAMA_CACHE%
 
 REM Check if llama-server.exe exists
-if not exist "llama-server.exe" (
-    echo [ERROR] llama-server.exe not found in current directory!
+if not exist "%LLAMA_SERVER%" (
+    echo [ERROR] llama-server.exe not found at: %LLAMA_SERVER%
     echo Please run: install-hip-llama.bat first
     pause
     exit /b 1
 )
 
-echo [OK] Found llama-server.exe with HIP support
+echo [OK] Found llama-server.exe at: %LLAMA_SERVER% with HIP support
 
 REM HIP System Detection
 echo.
@@ -138,7 +140,7 @@ echo.
 REM Start the server with HIP optimizations
 if defined MMPROJ_PATH (
     REM With vision support
-    llama-server.exe ^
+    "%LLAMA_SERVER%" ^
         --model "%MODEL_PATH%" ^
         --mmproj "%MMPROJ_PATH%" ^
         --host 0.0.0.0 ^
@@ -162,7 +164,7 @@ if defined MMPROJ_PATH (
         --verbose
 ) else (
     REM Without vision support
-    llama-server.exe ^
+    "%LLAMA_SERVER%" ^
         --model "%MODEL_PATH%" ^
         --host 0.0.0.0 ^
         --port 8080 ^
@@ -186,5 +188,4 @@ if defined MMPROJ_PATH (
 )
 
 echo.
-echo 🔚 Server stopped
-pause
+echo Server stopped

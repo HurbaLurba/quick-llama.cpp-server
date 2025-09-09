@@ -18,6 +18,14 @@ lib/
 lib64/
 parts/
 sdist/
+
+# HIP AMD GPU binaries and cache
+hip-amd-igpu/bin/
+hip-amd-igpu/windows/hip-llama-env/
+hip-amd-igpu/windows/cache/
+hip-amd-igpu/windows/temp/
+hip-amd-igpu/windows/llama-hip-extracted/
+hip-amd-igpu/windows/activate-hip-env.bat
 var/
 wheels/
 share/python-wheels/

@@ -1,13 +1,14 @@
 @echo off
-REM LLaMA.cpp HIP AMD GPU Installer for Windows
+REM LLaMA.cpp HIP AMD GPU Installer for Windows - Headless Installation
 REM Downloads and sets up llama.cpp with HIP support for AMD GPUs
 
 setlocal enabledelayedexpansion
 
-echo LLaMA.cpp HIP AMD GPU Installer
-echo ====================================
+echo LLaMA.cpp HIP AMD GPU Installer - Headless Mode
+echo =====================================================
 echo Target: AMD 8945HS with Radeon 780M integrated graphics
 echo Backend: HIP (AMD's CUDA equivalent for Windows)
+echo Install Path: ..\bin\
 
 REM Configuration
 set LLAMA_VERSION=b6423
@@ -15,18 +16,24 @@ set DOWNLOAD_URL=https://github.com/ggml-org/llama.cpp/releases/download/%LLAMA_
 set ZIP_FILE=llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
 set EXTRACT_DIR=llama-hip-extracted
 set VENV_DIR=hip-llama-env
+set BIN_DIR=..\bin
+
+REM Create bin directory
+if not exist "%BIN_DIR%" (
+    echo [INFO] Creating bin directory: %BIN_DIR%
+    mkdir "%BIN_DIR%"
+)
+
+echo.
+echo Checking for existing installation...
+if exist "%BIN_DIR%\llama-server.exe" (
+    echo [INFO] Found existing llama-server.exe in %BIN_DIR%
+    echo [INFO] Performing fresh installation (overwriting)
+)
 
 echo.
 echo Downloading llama.cpp HIP build...
 echo URL: %DOWNLOAD_URL%
-
-REM Check if we already have the executable
-if exist "llama-server.exe" (
-    echo [OK] llama-server.exe already exists
-    echo Do you want to re-download? (y/n)
-    set /p choice="> "
-    if /i "!choice!" neq "y" goto :check_deps
-)
 
 REM Create temp directory
 if not exist "temp" mkdir temp
@@ -39,7 +46,6 @@ powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.Secur
 if not exist "%ZIP_FILE%" (
     echo [ERROR] Download failed!
     echo Please check your internet connection and try again.
-    pause
     exit /b 1
 )
 
@@ -51,7 +57,6 @@ powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRAC
 
 if not exist "%EXTRACT_DIR%" (
     echo [ERROR] Extraction failed!
-    pause
     exit /b 1
 )
 
@@ -61,9 +66,9 @@ REM Find and copy the server executable
 echo Locating llama-server.exe...
 for /r "%EXTRACT_DIR%" %%f in (llama-server.exe) do (
     echo Found: %%f
-    copy "%%f" "..\llama-server.exe" >nul
-    if exist "..\llama-server.exe" (
-        echo [OK] llama-server.exe copied successfully
+    copy "%%f" "%BIN_DIR%\llama-server.exe" >nul
+    if exist "%BIN_DIR%\llama-server.exe" (
+        echo [OK] llama-server.exe installed to %BIN_DIR%
         goto :copy_success
     )
 )
@@ -71,7 +76,6 @@ for /r "%EXTRACT_DIR%" %%f in (llama-server.exe) do (
 echo [ERROR] Could not find llama-server.exe in the extracted files
 echo Available files:
 dir "%EXTRACT_DIR%" /s /b | findstr ".exe"
-pause
 exit /b 1
 
 :copy_success
@@ -164,18 +168,19 @@ echo [WARNING] Skipping virtual environment setup due to errors
 REM Test the executable
 echo.
 echo Testing llama-server.exe...
-if exist "llama-server.exe" (
-    echo [OK] llama-server.exe found
+if exist "%BIN_DIR%\llama-server.exe" (
+    echo [OK] llama-server.exe found in %BIN_DIR%
     echo Testing HIP backend availability...
-    llama-server.exe --help | findstr /i "hip" >nul
+    "%BIN_DIR%\llama-server.exe" --help | findstr /i "hip" >nul
     if errorlevel 1 (
         echo [INFO] HIP backend not mentioned in help (may still work)
     ) else (
         echo [OK] HIP backend confirmed in help text
     )
+    set EXECUTABLE_OK=1
 ) else (
-    echo [ERROR] llama-server.exe not found after installation
-    exit /b 1
+    echo [ERROR] llama-server.exe not found in %BIN_DIR%
+    set EXECUTABLE_OK=0
 )
 
 REM Create cache directory
@@ -201,9 +206,15 @@ echo.
 echo Installation Complete!
 echo ========================
 echo.
-echo Ready to run:
-echo   start-mistral-small-3.2-24b-hip-amd.bat
-echo   start-gemma3-27b-it-abliterated-hip-amd.bat
+if defined EXECUTABLE_OK if !EXECUTABLE_OK! equ 1 (
+    echo [OK] Setup successful!
+    echo Ready to run:
+    echo   start-mistral-small-3.2-24b-hip-amd.bat
+    echo   start-gemma3-27b-it-abliterated-hip-amd.bat
+) else (
+    echo [ERROR] Installation incomplete - llama-server.exe missing
+    echo Please try running the installer again or download manually
+)
 echo.
 echo HIP Backend Notes:
 echo   - HIP is AMD's CUDA equivalent for Windows
@@ -226,4 +237,10 @@ if defined HF_MISSING (
     echo [WARNING] huggingface-hub installation failed - may need manual install
 )
 echo.
-pause
+if defined EXECUTABLE_OK if !EXECUTABLE_OK! equ 0 (
+    echo [NEXT STEPS] To fix missing executable:
+    echo 1. Check internet connection and try again
+    echo 2. Verify GitHub releases are accessible
+    echo 3. Or manually download and place in: %BIN_DIR%\
+    echo.
+)

@@ -117,15 +117,17 @@ if exist "%~dp0hip-llama-env\Scripts\activate.bat" (
 echo.
 echo LLaMA.cpp Server Check:
 echo ---------------------------
-if exist "llama-server.exe" (
-    echo [OK] llama-server.exe found
+set BIN_DIR=%~dp0..\bin
+set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
+if exist "%LLAMA_SERVER%" (
+    echo [OK] llama-server.exe found: %LLAMA_SERVER%
     echo File size:
-    dir llama-server.exe | findstr "llama-server.exe"
+    dir "%LLAMA_SERVER%" | findstr "llama-server.exe"
     echo.
     echo Testing help output for HIP support:
-    llama-server.exe --help 2>nul | findstr /i "hip" && echo [OK] HIP mentioned in help || echo [WARNING] HIP not explicitly mentioned in help
+    "%LLAMA_SERVER%" --help 2>nul | findstr /i "hip" && echo [OK] HIP mentioned in help || echo [WARNING] HIP not explicitly mentioned in help
 ) else (
-    echo [ERROR] llama-server.exe not found
+    echo [ERROR] llama-server.exe not found at: %LLAMA_SERVER%
     echo Please run: install-hip-llama.bat
 )
 
@@ -155,7 +157,7 @@ if exist "%LLAMA_CACHE%" (
 echo.
 echo HIP GPU Test (if available):
 echo --------------------------------
-if exist "llama-server.exe" (
+if exist "%LLAMA_SERVER%" (
     echo Testing basic server startup with HIP environment...
     set HIP_VISIBLE_DEVICES=0
     set HSA_OVERRIDE_GFX_VERSION=11.0.2
@@ -163,7 +165,7 @@ if exist "llama-server.exe" (
     
     echo Starting server for 5 seconds to test HIP initialization...
     timeout /t 2 >nul
-    start /b llama-server.exe --help >nul 2>&1
+    start /b "%LLAMA_SERVER%" --help >nul 2>&1
     timeout /t 3 >nul
     taskkill /f /im llama-server.exe >nul 2>&1
     echo Test completed (check for any error messages above)
@@ -175,7 +177,7 @@ echo.
 echo Summary and Next Steps:
 echo ===========================
 echo.
-if exist "llama-server.exe" (
+if exist "%LLAMA_SERVER%" (
     echo [OK] Ready to run models!
     echo.
     echo Quick Start Commands:
