@@ -25,19 +25,24 @@ set MMPROJ_FILE=mmproj-F32.gguf
 set CONTEXT_SIZE=65536
 set MODEL_ALIAS=mistral-small-3.2-24b-vision
 
-REM HIP AMD GPU Environment Variables for Windows
-set HIP_VISIBLE_DEVICES=0
-set AMD_LOG_LEVEL=1
-set HSA_OVERRIDE_GFX_VERSION=10.3.0
-set HCC_AMDGPU_TARGET=gfx1030
-set GGML_HIP_DEVICE=0
+REM HIP AMD GPU Environment Variables - DISABLED FOR CPU-ONLY TEST
+REM set HIP_VISIBLE_DEVICES=0
+REM set AMD_LOG_LEVEL=1
+REM set HSA_OVERRIDE_GFX_VERSION=10.3.0
+REM set HCC_AMDGPU_TARGET=gfx1030
+REM set GGML_HIP_DEVICE=0
 
-REM Additional HIP environment for kernel compatibility
-set ROCBLAS_LAYER=3
-set HIP_FORCE_DEV_KERNARG=1
-set ROCBLAS_TENSILE_LIBPATH=%~dp0bin\rocblas\library
-set GGML_CUDA_FORCE_DMMV=1
+REM Force CPU-only mode
+set CUDA_VISIBLE_DEVICES=""
+set HIP_VISIBLE_DEVICES=""
 set GGML_CUDA_NO_PINNED=1
+
+REM Additional HIP environment - DISABLED FOR CPU-ONLY TEST
+REM set ROCBLAS_LAYER=3
+REM set HIP_FORCE_DEV_KERNARG=1
+REM set ROCBLAS_TENSILE_LIBPATH=%~dp0bin\rocblas\library
+REM set GGML_CUDA_FORCE_DMMV=1
+REM set GGML_CUDA_NO_PINNED=1
 
 REM Performance settings optimized for AMD iGPU with HIP
 set BATCH_SIZE=256
@@ -158,8 +163,8 @@ REM )
 echo [INFO] Vision capabilities disabled for this test run
 
 echo.
-echo Starting LLaMA.cpp server with HIP AMD GPU acceleration...
-echo Backend: HIP (Native Windows AMD)
+echo Starting LLaMA.cpp server in CPU-ONLY mode for testing...
+echo Backend: CPU (HIP disabled due to kernel compatibility issues)
 echo Model: %MODEL_REPO%:%MODEL_QUANT%
 if defined MMPROJ_PATH (
     echo Vision: Enabled
