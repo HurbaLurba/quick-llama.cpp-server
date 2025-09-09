@@ -13,27 +13,20 @@ echo Backend: HIP (AMD's CUDA equivalent for Windows)
 REM Resolve important directories to absolute paths
 set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%") do set "SCRIPT_DIR=%%~fI"
-set "BIN_DIR=%SCRIPT_DIR%..\bin"
+set "BIN_DIR=%SCRIPT_DIR%bin"
 for %%I in ("%BIN_DIR%") do set "BIN_DIR=%%~fI"
-set "TEMP_DIR=%SCRIPT_DIR%temp"
-for %%I in ("%TEMP_DIR%") do set "TEMP_DIR=%%~fI"
 echo Install Path: %BIN_DIR%
 
 REM Configuration
-set LLAMA_VERSION=b6423
+set LLAMA_VERSION=b6424
 set DOWNLOAD_URL=https://github.com/ggml-org/llama.cpp/releases/download/%LLAMA_VERSION%/llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
-set ZIP_FILE=%TEMP_DIR%\llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
-set EXTRACT_DIR=%TEMP_DIR%\llama-hip-extracted
+set ZIP_FILE=%SCRIPT_DIR%llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
 set VENV_DIR=hip-llama-env
 
-REM Ensure bin and temp directories exist
+REM Ensure bin directory exists
 if not exist "%BIN_DIR%" (
     echo [INFO] Creating bin directory: %BIN_DIR%
     mkdir "%BIN_DIR%"
-)
-if not exist "%TEMP_DIR%" (
-    echo [INFO] Creating temp directory: %TEMP_DIR%
-    mkdir "%TEMP_DIR%"
 )
 
 echo.
@@ -59,37 +52,18 @@ if not exist "%ZIP_FILE%" (
 
 echo [OK] Download completed: %ZIP_FILE%
 
-REM Extract using PowerShell
-echo Extracting files...
-powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACT_DIR%' -Force"
+REM Extract using PowerShell directly into bin
+echo Extracting files into: %BIN_DIR%
+powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%BIN_DIR%' -Force"
 
-if not exist "%EXTRACT_DIR%" (
-    echo [ERROR] Extraction failed!
+if not exist "%BIN_DIR%\llama-server.exe" (
+    echo [ERROR] Extraction failed or llama-server.exe missing in %BIN_DIR%
+    echo Contents of bin:
+    dir "%BIN_DIR%" /b
     exit /b 1
 )
 
-echo [OK] Extraction completed
-
-REM Find and copy the server executable
-echo Locating llama-server.exe...
-for /r "%EXTRACT_DIR%" %%f in (llama-server.exe) do (
-    echo Found: %%f
-    copy "%%f" "%BIN_DIR%\llama-server.exe" >nul
-    if exist "%BIN_DIR%\llama-server.exe" (
-        echo [OK] llama-server.exe installed to %BIN_DIR%
-        goto :copy_success
-    )
-)
-
-echo [ERROR] Could not find llama-server.exe in the extracted files
-echo Available files:
-dir "%EXTRACT_DIR%" /s /b | findstr ".exe"
-exit /b 1
-
-:copy_success
-REM Clean up temp files
-echo Cleaning up temporary files...
-rmdir /s /q "%TEMP_DIR%" 2>nul
+echo [OK] Extraction completed to %BIN_DIR%
 
 :check_deps
 echo.

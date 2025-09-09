@@ -20,7 +20,7 @@ if exist "hip-llama-env\Scripts\activate.bat" (
 )
 
 REM Paths and configuration
-set BIN_DIR=%~dp0..\bin
+set BIN_DIR=%~dp0bin
 set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
 set MODEL_REPO=mlabonne/gemma-3-27b-it-abliterated-GGUF
 set MODEL_FILE=gemma-3-27b-it-abliterated-Q4_K_M.gguf
@@ -66,7 +66,6 @@ REM Check if llama-server.exe exists
 if not exist "%LLAMA_SERVER%" (
     echo [ERROR] llama-server.exe not found at: %LLAMA_SERVER%
     echo Please run: install-hip-llama.bat first
-    pause
     exit /b 1
 )
 
@@ -133,7 +132,8 @@ if defined MMPROJ_PATH (
     echo Vision: Disabled (MMProj not available)
 )
 echo.
-echo Server will be available at: http://localhost:8080
+set PORT=8085
+echo Server will be available at: http://localhost:%PORT%
 echo Press Ctrl+C to stop the server
 echo.
 
@@ -144,7 +144,7 @@ if defined MMPROJ_PATH (
         --model "%MODEL_PATH%" ^
         --mmproj "%MMPROJ_PATH%" ^
         --host 0.0.0.0 ^
-        --port 8080 ^
+    --port %PORT% ^
         --ctx-size %CONTEXT_SIZE% ^
         --batch-size %BATCH_SIZE% ^
         --ubatch-size %UBATCH_SIZE% ^
@@ -152,7 +152,7 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
-        --flash-attn ^
+        
         --no-mmap ^
         --mlock ^
         --defrag-thold 0.1 ^
@@ -167,7 +167,7 @@ if defined MMPROJ_PATH (
     "%LLAMA_SERVER%" ^
         --model "%MODEL_PATH%" ^
         --host 0.0.0.0 ^
-        --port 8080 ^
+    --port %PORT% ^
         --ctx-size %CONTEXT_SIZE% ^
         --batch-size %BATCH_SIZE% ^
         --ubatch-size %UBATCH_SIZE% ^
@@ -175,7 +175,7 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
-        --flash-attn ^
+        
         --no-mmap ^
         --mlock ^
         --defrag-thold 0.1 ^

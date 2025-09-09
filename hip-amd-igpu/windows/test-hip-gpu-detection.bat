@@ -3,21 +3,7 @@ REM HIP AMD GPU Detection and Test Script for Windows
 REM Comprehensive system check for HIP AMD GPU setup
 setlocal EnableDelayedExpansion
 
-echo HIP AMD    echo    start-mistral-small-3.2-24b-hip-amd.bat
-    echo    start-gemma3-27b-it-abliterated-hip-amd.bat
-) else (
-    echo [ERROR] Setup incomplete - run install-hip-llama.bat first
-)
-
-echo.
-echo HIP Performance Tips:
-echo    - Ensure AMD Adrenalin drivers are latest version
-echo    - Enable GPU scheduling in Windows Display settings
-echo    - Close GPU-intensive applications before running
-echo    - Monitor AMD Software for GPU utilization
-echo.
-
-pauseand Test Tool
+echo HIP AMD Detection and Test Tool
 echo ==========================================
 echo Target: AMD 8945HS with Radeon 780M (gfx1103)
 
@@ -117,7 +103,7 @@ if exist "%~dp0hip-llama-env\Scripts\activate.bat" (
 echo.
 echo LLaMA.cpp Server Check:
 echo ---------------------------
-set BIN_DIR=%~dp0..\bin
+set BIN_DIR=%~dp0bin
 set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
 if exist "%LLAMA_SERVER%" (
     echo [OK] llama-server.exe found: %LLAMA_SERVER%

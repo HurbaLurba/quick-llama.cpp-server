@@ -73,7 +73,7 @@ echo    Backend: HIP (Windows Native AMD)
 echo    Cache: %LLAMA_CACHE%
 
 REM Resolve llama-server path in bin directory
-set BIN_DIR=%~dp0..\bin
+set BIN_DIR=%~dp0bin
 set LLAMA_SERVER=%BIN_DIR%\llama-server.exe
 if not exist "%LLAMA_SERVER%" (
     echo [ERROR] llama-server.exe not found at: %LLAMA_SERVER%
