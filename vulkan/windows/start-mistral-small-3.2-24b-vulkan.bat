@@ -174,13 +174,13 @@ echo Press Ctrl+C to stop the server
 echo.
 
 REM Build dynamic extras
-set DYN_EXTRAS=
+set "DYN_EXTRAS="
 if /i "%CPU_MOE%"=="true" (
-    set DYN_EXTRAS=!DYN_EXTRAS! --cpu-moe
-    if defined N_CPU_MOE set DYN_EXTRAS=!DYN_EXTRAS! --n-cpu-moe %N_CPU_MOE%
+    set "DYN_EXTRAS=!DYN_EXTRAS! --cpu-moe"
+    if defined N_CPU_MOE set "DYN_EXTRAS=!DYN_EXTRAS! --n-cpu-moe %N_CPU_MOE%"
 )
-if defined CACHE_REUSE set DYN_EXTRAS=!DYN_EXTRAS! --cache-reuse %CACHE_REUSE%
-if defined PREDICT set DYN_EXTRAS=!DYN_EXTRAS! --predict %PREDICT%
+if defined CACHE_REUSE set "DYN_EXTRAS=!DYN_EXTRAS! --cache-reuse %CACHE_REUSE%"
+if defined PREDICT set "DYN_EXTRAS=!DYN_EXTRAS! --predict %PREDICT%"
 
 REM Detect feature support from llama-server --help
 set REASONING_FLAGS=
@@ -223,7 +223,7 @@ if defined MMPROJ_PATH (
         --top-p %TOP_P% ^
         --alias %MODEL_ALIAS% ^
         --verbose ^
-        %DYN_EXTRAS%
+        !DYN_EXTRAS!
 ) else (
     REM Without vision support
     "%LLAMA_SERVER%" ^
@@ -250,7 +250,7 @@ if defined MMPROJ_PATH (
         --top-p %TOP_P% ^
         --alias %MODEL_ALIAS% ^
         --verbose ^
-        %DYN_EXTRAS%
+        !DYN_EXTRAS!
 )
 
 echo.
