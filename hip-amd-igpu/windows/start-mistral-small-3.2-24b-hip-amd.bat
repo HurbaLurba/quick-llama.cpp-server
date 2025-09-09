@@ -1,10 +1,21 @@
 @echo off
 REM Mistral Small 3.2 24B Vision Model - Windows Native HIP AMD GPU
 REM Direct Windows build with HIP backend for AMD GPU acceleration
+setlocal EnableDelayedExpansion
 
-echo 🔥👁️🗿 Starting Mistral Small 3.2 24B - Windows Native HIP AMD GPU...
-echo 🚀 Backend: HIP (AMD's CUDA equivalent)
-echo 🎯 Target: AMD 8945HS with Radeon 780M integrated graphics
+REM Activate the hip-llama-env virtual environment
+if not exist "%~dp0hip-llama-env\Scripts\activate.bat" (
+    echo [ERROR] Virtual environment not found! Please run install-hip-llama.bat first
+    pause
+    exit /b 1
+)
+
+call "%~dp0hip-llama-env\Scripts\activate.bat"
+
+echo.
+echo [INFO] Starting Mistral Small 3.2 24B - Windows Native HIP AMD GPU
+echo [INFO] Backend: HIP (AMD's CUDA equivalent)
+echo [INFO] Target: AMD 8945HS with Radeon 780M integrated graphics
 
 REM Model Configuration
 set MODEL_REPO=bartowski/mistral-small-3.2-24b-instruct-2501-GGUF
@@ -38,7 +49,7 @@ if not exist "%LLAMA_CACHE%\models" mkdir "%LLAMA_CACHE%\models"
 if not exist "%LLAMA_CACHE%\mmproj" mkdir "%LLAMA_CACHE%\mmproj"
 
 echo.
-echo 🚀 Model Configuration:
+echo Model Configuration:
 echo    Model: %MODEL_REPO%/%MODEL_FILE%
 echo    Vision: %MMPROJ_REPO%/%MMPROJ_FILE%
 echo    Context: %CONTEXT_SIZE% tokens
@@ -49,77 +60,85 @@ echo    Cache: %LLAMA_CACHE%
 
 REM Check if llama-server.exe exists
 if not exist "llama-server.exe" (
-    echo ❌ llama-server.exe not found in current directory!
+    echo [ERROR] llama-server.exe not found in current directory!
     echo Please run: install-hip-llama.bat first
     pause
     exit /b 1
 )
 
-echo ✅ Found llama-server.exe with HIP support
+echo [OK] Found llama-server.exe with HIP support
 
 REM HIP System Detection
 echo.
-echo 🔥 HIP System Status:
+echo HIP System Status:
 echo    HIP_VISIBLE_DEVICES: %HIP_VISIBLE_DEVICES%
 echo    HSA_OVERRIDE_GFX_VERSION: %HSA_OVERRIDE_GFX_VERSION%
 echo    HCC_AMDGPU_TARGET: %HCC_AMDGPU_TARGET%
 echo    GGML_HIP_DEVICE: %GGML_HIP_DEVICE%
 
-REM Check AMD GPU using PowerShell (modern method)
+REM Check GPU detection using modern PowerShell commands
+for /f "delims=" %%a in ('powershell -command "try { $gpu = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -like '*AMD*' -or $_.Name -like '*Radeon*' } | Select-Object -First 1; if ($gpu) { $gpu.Name } else { 'No AMD GPU detected' } } catch { 'GPU detection failed' }"') do set GPU_NAME=%%a
+
 echo.
-echo 🎮 AMD Graphics Hardware:
-powershell -Command "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -match 'AMD|Radeon'} | ForEach-Object {Write-Host '   ' $_.Name}" || echo    No AMD graphics detected via PowerShell
+echo AMD Graphics Hardware:
+if "%GPU_NAME%"=="GPU detection failed" (
+    echo    [WARNING] GPU detection failed - may still work with HIP
+) else if "%GPU_NAME%"=="No AMD GPU detected" (
+    echo    [WARNING] No AMD GPU detected - will fall back to CPU
+) else (
+    echo    [OK] %GPU_NAME%
+)
 
 REM Download model if not present
 set MODEL_PATH=%LLAMA_CACHE%\models\%MODEL_FILE%
 if not exist "%MODEL_PATH%" (
     echo.
-    echo ⬇️ Downloading model: %MODEL_REPO%/%MODEL_FILE%
+    echo Downloading model: %MODEL_REPO%/%MODEL_FILE%
     echo    Size: ~15GB - this will take time depending on connection speed
     
     huggingface-cli download "%MODEL_REPO%" "%MODEL_FILE%" --local-dir "%LLAMA_CACHE%\models" --local-dir-use-symlinks False
     if errorlevel 1 (
-        echo ❌ Model download failed!
+        echo [ERROR] Model download failed!
         echo Please check internet connection and try again
         pause
         exit /b 1
     )
-    echo ✅ Model download completed
+    echo [OK] Model download completed
 ) else (
-    echo ✅ Model file already cached: %MODEL_PATH%
+    echo [OK] Model file already cached: %MODEL_PATH%
 )
 
 REM Download multimodal projection if not present  
 set MMPROJ_PATH=%LLAMA_CACHE%\mmproj\%MMPROJ_FILE%
 if not exist "%MMPROJ_PATH%" (
     echo.
-    echo ⬇️ Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
+    echo Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
     echo    Size: ~2GB - vision capabilities
     
     huggingface-cli download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --local-dir "%LLAMA_CACHE%\mmproj" --local-dir-use-symlinks False
     if errorlevel 1 (
-        echo ❌ MMProj download failed!
+        echo [ERROR] MMProj download failed!
         echo Vision capabilities will not be available
         set MMPROJ_PATH=
     ) else (
-        echo ✅ MMProj download completed
+        echo [OK] MMProj download completed
     )
 ) else (
-    echo ✅ MMProj file already cached: %MMPROJ_PATH%
+    echo [OK] MMProj file already cached: %MMPROJ_PATH%
 )
 
 echo.
-echo 🚀 Starting LLaMA.cpp server with HIP AMD GPU acceleration...
-echo 🔥 Backend: HIP (Native Windows AMD)
-echo 📦 Model: %MODEL_REPO%/%MODEL_FILE%
+echo Starting LLaMA.cpp server with HIP AMD GPU acceleration...
+echo Backend: HIP (Native Windows AMD)
+echo Model: %MODEL_REPO%/%MODEL_FILE%
 if defined MMPROJ_PATH (
-    echo 👁️ Vision: Enabled
+    echo Vision: Enabled
 ) else (
-    echo 👁️ Vision: Disabled ^(MMProj not available^)
+    echo Vision: Disabled (MMProj not available)
 )
 echo.
-echo 💡 Server will be available at: http://localhost:8080
-echo 🔧 Press Ctrl+C to stop the server
+echo Server will be available at: http://localhost:8080
+echo Press Ctrl+C to stop the server
 echo.
 
 REM Start the server with HIP optimizations
@@ -173,5 +192,5 @@ if defined MMPROJ_PATH (
 )
 
 echo.
-echo 🔚 Server stopped
+echo Server stopped
 pause

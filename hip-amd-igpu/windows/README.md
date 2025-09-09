@@ -2,14 +2,15 @@
 
 Native Windows implementation for AMD GPU acceleration using HIP backend with llama.cpp server.
 
-## 🔥 HIP AMD GPU Support
+## HIP AMD GPU Support
 
 - **Target Hardware**: AMD 8945HS with Radeon 780M integrated graphics (gfx1103)
-- **Backend**: HIP (AMD's CUDA equivalent for Windows)
+- **Backend**: HIP (AMD's CUDA equivalent for Windows)  
+- **Python Environment**: Isolated virtual environment (hip-llama-env)
 - **Future Support**: AMD Ryzen AI MAX+ 395 with 96GB unified memory
 - **Performance**: Significantly better than Vulkan for AMD GPUs
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install and Setup
 
@@ -20,8 +21,9 @@ install-hip-llama.bat
 # This automatically:
 # - Downloads the HIP-enabled llama.cpp build
 # - Extracts llama-server.exe
+# - Creates Python virtual environment (hip-llama-env)
+# - Installs huggingface-hub in isolated environment
 # - Checks AMD drivers and dependencies
-# - Installs Python packages if needed
 ```
 
 ### 2. Test Your System
@@ -33,7 +35,8 @@ test-hip-gpu-detection.bat
 # Verifies:
 # - AMD GPU detection
 # - HIP environment setup
-# - Python and huggingface-hub
+# - Python virtual environment
+# - huggingface-hub installation
 # - llama-server.exe functionality
 ```
 
@@ -49,7 +52,7 @@ start-mistral-small-3.2-24b-hip-amd.bat
 start-gemma3-27b-it-abliterated-hip-amd.bat
 ```
 
-## 🔥 HIP Performance Advantages
+## HIP Performance Advantages
 
 ### Why HIP > Vulkan for AMD
 - **Native AMD**: HIP is AMD's own compute platform
