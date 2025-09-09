@@ -26,11 +26,12 @@ if not exist "%ROCBLAS_DIR%" (
 
 echo [OK] Found rocBLAS directory: %ROCBLAS_DIR%
 
-REM Download URL for the gfx1103 libraries
+REM Download URL for the gfx1103 libraries from releases
 set REPO_URL=https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU
-set DOWNLOAD_URL=https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/archive/refs/heads/main.zip
+REM Use the latest release with HIP SDK 6.2.4 compatible files
+set DOWNLOAD_URL=https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/releases/download/v0.6.2.4/rocm_gfx1103_AMD_780M_phoenix_V5.0_for_hip_sdk_6.2.4.7z
 set TEMP_DIR=%TEMP%\gfx1103-rocblas
-set ZIP_FILE=%TEMP_DIR%\rocblas-gfx1103.zip
+set ZIP_FILE=%TEMP_DIR%\rocblas-gfx1103.7z
 
 echo.
 echo Downloading gfx1103 rocBLAS libraries...
@@ -51,67 +52,73 @@ if errorlevel 1 (
 
 echo [OK] Downloaded: %ZIP_FILE%
 
-REM Extract the ZIP file
+REM Extract the 7z file (requires 7-Zip to be installed)
 echo [INFO] Extracting rocBLAS libraries...
-powershell -Command "try { Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%TEMP_DIR%' -Force } catch { Write-Error $_.Exception.Message; exit 1 }"
+where 7z >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Failed to extract ZIP file
+    echo [ERROR] 7-Zip not found in PATH
+    echo Please install 7-Zip and add it to PATH, or extract manually:
+    echo File: %ZIP_FILE%
+    echo Target: %TEMP_DIR%
+    pause
+    exit /b 1
+)
+
+7z x "%ZIP_FILE%" -o"%TEMP_DIR%" -y >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Failed to extract 7z file
     exit /b 1
 )
 
 echo [OK] Extracted to: %TEMP_DIR%
 
-REM Find the extracted directory (should be ROCmLibs-for-gfx1103-AMD780M-APU-main)
-set EXTRACTED_DIR=%TEMP_DIR%\ROCmLibs-for-gfx1103-AMD780M-APU-main
-
-if not exist "%EXTRACTED_DIR%" (
-    echo [ERROR] Extracted directory not found: %EXTRACTED_DIR%
-    echo Archive structure may have changed
-    exit /b 1
-)
-
-echo [OK] Found extracted files: %EXTRACTED_DIR%
-
-REM Look for rocBLAS library files in the extracted directory
-REM The repo structure might have rocblas/library subdirectory
-set SOURCE_ROCBLAS_DIR=
-if exist "%EXTRACTED_DIR%\rocblas\library" (
-    set SOURCE_ROCBLAS_DIR=%EXTRACTED_DIR%\rocblas\library
-) else if exist "%EXTRACTED_DIR%\library" (
-    set SOURCE_ROCBLAS_DIR=%EXTRACTED_DIR%\library
-) else (
-    REM Try to find any directory with .dat or .hsaco files
-    for /f "delims=" %%d in ('dir /s /b "%EXTRACTED_DIR%\*.dat" 2^>nul ^| head -1') do (
-        set SOURCE_ROCBLAS_DIR=%%~dpd
+REM Find the extracted files - should contain library folder and rocblas.dll
+set SOURCE_DIR=
+for /d %%d in ("%TEMP_DIR%\*") do (
+    if exist "%%d\library" (
+        set SOURCE_DIR=%%d
+        goto found_source
     )
 )
 
-if not defined SOURCE_ROCBLAS_DIR (
+REM If no subdirectory with library, check temp dir directly
+if exist "%TEMP_DIR%\library" (
+    set SOURCE_DIR=%TEMP_DIR%
+) else (
     echo [ERROR] Could not locate rocBLAS library files in extracted archive
-    echo Please check the repository structure at: %REPO_URL%
+    echo Expected structure: library folder with gfx1103 files
+    dir "%TEMP_DIR%" /s /b
     exit /b 1
 )
 
-echo [OK] Found rocBLAS source files: %SOURCE_ROCBLAS_DIR%
+:found_source
+echo [OK] Found rocBLAS files: %SOURCE_DIR%
 
-REM List what we're about to copy
+REM Copy the library folder contents
 echo.
-echo Files to install for gfx1103:
-dir /b "%SOURCE_ROCBLAS_DIR%\*gfx1103*" 2>nul
-if errorlevel 1 (
-    echo [WARNING] No gfx1103-specific files found, looking for generic files...
-    dir /b "%SOURCE_ROCBLAS_DIR%\*.dat" "%SOURCE_ROCBLAS_DIR%\*.hsaco" 2>nul
+echo [INFO] Installing gfx1103 rocBLAS library files...
+if exist "%SOURCE_DIR%\library" (
+    xcopy "%SOURCE_DIR%\library\*" "%ROCBLAS_DIR%\" /Y /S >nul 2>&1
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy library files
+        exit /b 1
+    )
+    echo [OK] Library files installed to: %ROCBLAS_DIR%
+) else (
+    echo [WARNING] No library folder found in source
 )
 
-REM Copy gfx1103-specific files
-echo.
-echo [INFO] Installing gfx1103 rocBLAS libraries...
-xcopy "%SOURCE_ROCBLAS_DIR%\*gfx1103*" "%ROCBLAS_DIR%\" /Y >nul 2>&1
-if errorlevel 1 (
-    echo [WARNING] No gfx1103-specific files found, copying all library files...
-    xcopy "%SOURCE_ROCBLAS_DIR%\*.dat" "%ROCBLAS_DIR%\" /Y >nul 2>&1
-    xcopy "%SOURCE_ROCBLAS_DIR%\*.hsaco" "%ROCBLAS_DIR%\" /Y >nul 2>&1
-    xcopy "%SOURCE_ROCBLAS_DIR%\*.co" "%ROCBLAS_DIR%\" /Y >nul 2>&1
+REM Copy rocblas.dll if present
+if exist "%SOURCE_DIR%\rocblas.dll" (
+    echo [INFO] Installing gfx1103 rocblas.dll...
+    copy "%SOURCE_DIR%\rocblas.dll" "%BIN_DIR%\rocblas.dll" /Y >nul 2>&1
+    if errorlevel 1 (
+        echo [WARNING] Failed to copy rocblas.dll - may not be needed
+    ) else (
+        echo [OK] rocblas.dll updated
+    )
+) else (
+    echo [INFO] No rocblas.dll found - using existing one
 )
 
 REM Clean up temp files
