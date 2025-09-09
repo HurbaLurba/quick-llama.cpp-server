@@ -124,28 +124,31 @@ if not exist "%MODEL_PATH%" (
 
 REM Download multimodal projection into Hugging Face cache structure if not present
 set MMPROJ_PATH=
-for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
-if not exist "%MMPROJ_PATH%" (
-    echo.
-    echo Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
-    echo    Size: ~2GB - vision capabilities
-    
-    hf download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --cache-dir "%LLAMA_CACHE%"
-    if errorlevel 1 (
-        echo [ERROR] MMProj download failed!
-        echo Vision capabilities will not be available
-        set MMPROJ_PATH=
-    ) else (
-    for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
-        if exist "%MMPROJ_PATH%" (
-            echo [OK] MMProj file cached: %MMPROJ_PATH%
-        ) else (
-            echo [WARNING] MMProj file not found in cache after download
-        )
-    )
-) else (
-    echo [OK] MMProj file already cached: %MMPROJ_PATH%
-)
+REM TEMPORARILY DISABLE VISION - mmproj file appears corrupted/empty
+REM for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
+REM if not exist "%MMPROJ_PATH%" (
+REM     echo.
+REM     echo Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
+REM     echo    Size: ~2GB - vision capabilities
+REM     
+REM     hf download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --cache-dir "%LLAMA_CACHE%"
+REM     if errorlevel 1 (
+REM         echo [ERROR] MMProj download failed!
+REM         echo Vision capabilities will not be available
+REM         set MMPROJ_PATH=
+REM     ) else (
+REM     for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
+REM         if exist "%MMPROJ_PATH%" (
+REM             echo [OK] MMProj file cached: %MMPROJ_PATH%
+REM         ) else (
+REM             echo [WARNING] MMProj file not found in cache after download
+REM         )
+REM     )
+REM ) else (
+REM     echo [OK] MMProj file already cached: %MMPROJ_PATH%
+REM )
+
+echo [INFO] Vision capabilities disabled for this test run
 
 echo.
 echo Starting LLaMA.cpp server with HIP AMD GPU acceleration...
