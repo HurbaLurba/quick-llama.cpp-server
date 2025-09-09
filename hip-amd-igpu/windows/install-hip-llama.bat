@@ -8,20 +8,31 @@ echo LLaMA.cpp HIP AMD GPU Installer - Headless Mode
 echo =====================================================
 echo Target: AMD 8945HS with Radeon 780M integrated graphics
 echo Backend: HIP (AMD's CUDA equivalent for Windows)
-echo Install Path: ..\bin\
+
+REM Resolve important directories to absolute paths
+set "SCRIPT_DIR=%~dp0"
+for %%I in ("%SCRIPT_DIR%") do set "SCRIPT_DIR=%%~fI"
+set "BIN_DIR=%SCRIPT_DIR%..\bin"
+for %%I in ("%BIN_DIR%") do set "BIN_DIR=%%~fI"
+set "TEMP_DIR=%SCRIPT_DIR%temp"
+for %%I in ("%TEMP_DIR%") do set "TEMP_DIR=%%~fI"
+echo Install Path: %BIN_DIR%
 
 REM Configuration
 set LLAMA_VERSION=b6423
 set DOWNLOAD_URL=https://github.com/ggml-org/llama.cpp/releases/download/%LLAMA_VERSION%/llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
-set ZIP_FILE=llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
-set EXTRACT_DIR=llama-hip-extracted
+set ZIP_FILE=%TEMP_DIR%\llama-%LLAMA_VERSION%-bin-win-hip-radeon-x64.zip
+set EXTRACT_DIR=%TEMP_DIR%\llama-hip-extracted
 set VENV_DIR=hip-llama-env
-set BIN_DIR=..\bin
 
-REM Create bin directory
+REM Ensure bin and temp directories exist
 if not exist "%BIN_DIR%" (
     echo [INFO] Creating bin directory: %BIN_DIR%
     mkdir "%BIN_DIR%"
+)
+if not exist "%TEMP_DIR%" (
+    echo [INFO] Creating temp directory: %TEMP_DIR%
+    mkdir "%TEMP_DIR%"
 )
 
 echo.
@@ -34,10 +45,6 @@ if exist "%BIN_DIR%\llama-server.exe" (
 echo.
 echo Downloading llama.cpp HIP build...
 echo URL: %DOWNLOAD_URL%
-
-REM Create temp directory
-if not exist "temp" mkdir temp
-cd temp
 
 REM Download using PowerShell (more reliable than curl on Windows)
 echo Downloading... (this may take a few minutes)
@@ -80,9 +87,8 @@ exit /b 1
 
 :copy_success
 REM Clean up temp files
-cd ..
 echo Cleaning up temporary files...
-rmdir /s /q temp 2>nul
+rmdir /s /q "%TEMP_DIR%" 2>nul
 
 :check_deps
 echo.
