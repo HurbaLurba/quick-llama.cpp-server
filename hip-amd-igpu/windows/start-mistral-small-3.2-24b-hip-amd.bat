@@ -22,7 +22,7 @@ set MODEL_QUANT=UD-Q4_K_XL
 set MODEL_FILE=Mistral-Small-3.2-24B-Instruct-2506-UD-Q4_K_XL.gguf
 set MMPROJ_REPO=unsloth/Mistral-Small-3.2-24B-Instruct-2506-GGUF
 set MMPROJ_FILE=mmproj-F32.gguf
-set CONTEXT_SIZE=131072
+set CONTEXT_SIZE=65536
 set MODEL_ALIAS=mistral-small-3.2-24b-vision
 
 REM HIP AMD GPU Environment Variables for Windows
