@@ -36,8 +36,8 @@ REM Performance settings optimized for AMD iGPU with HIP
 set BATCH_SIZE=1024
 set UBATCH_SIZE=512
 set N_GPU_LAYERS=35
-set CACHE_TYPE_K=q4_0
-set CACHE_TYPE_V=q4_0
+set CACHE_TYPE_K=f16
+set CACHE_TYPE_V=f16
 set TEMPERATURE=0.15
 set TOP_K=32
 set TOP_P=1.00
@@ -198,6 +198,7 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
+        --flash-attn 0 ^
     %REASONING_FLAGS% ^
     %SWA_FLAGS% ^
     %JINJA_FLAGS% ^
@@ -223,6 +224,7 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
+        --flash-attn 0 ^
     %REASONING_FLAGS% ^
     %SWA_FLAGS% ^
     %JINJA_FLAGS% ^
