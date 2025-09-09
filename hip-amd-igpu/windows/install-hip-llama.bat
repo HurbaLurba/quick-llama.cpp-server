@@ -3,6 +3,7 @@ REM LLaMA.cpp HIP AMD GPU Installer for Windows - Headless Installation
 REM Downloads and sets up llama.cpp with HIP support for AMD GPUs
 
 setlocal enabledelayedexpansion
+set EXECUTABLE_OK=0
 
 echo LLaMA.cpp HIP AMD GPU Installer - Headless Mode
 echo =====================================================
@@ -39,7 +40,7 @@ echo.
 echo Checking for existing installation...
 if exist "%BIN_DIR%\llama-server.exe" (
     echo [INFO] Found existing llama-server.exe in %BIN_DIR%
-    echo [INFO] Performing fresh installation (overwriting)
+    echo [INFO] Performing fresh installation ^(overwriting^)
 )
 
 echo.
@@ -179,7 +180,7 @@ if exist "%BIN_DIR%\llama-server.exe" (
     echo Testing HIP backend availability...
     "%BIN_DIR%\llama-server.exe" --help | findstr /i "hip" >nul
     if errorlevel 1 (
-        echo [INFO] HIP backend not mentioned in help (may still work)
+    echo [INFO] HIP backend not mentioned in help ^(may still work^)
     ) else (
         echo [OK] HIP backend confirmed in help text
     )
@@ -212,7 +213,7 @@ echo.
 echo Installation Complete!
 echo ========================
 echo.
-if defined EXECUTABLE_OK if !EXECUTABLE_OK! equ 1 (
+if "!EXECUTABLE_OK!"=="1" (
     echo [OK] Setup successful!
     echo Ready to run:
     echo   start-mistral-small-3.2-24b-hip-amd.bat
@@ -243,7 +244,7 @@ if defined HF_MISSING (
     echo [WARNING] huggingface-hub installation failed - may need manual install
 )
 echo.
-if defined EXECUTABLE_OK if !EXECUTABLE_OK! equ 0 (
+if not "!EXECUTABLE_OK!"=="1" (
     echo [NEXT STEPS] To fix missing executable:
     echo 1. Check internet connection and try again
     echo 2. Verify GitHub releases are accessible
