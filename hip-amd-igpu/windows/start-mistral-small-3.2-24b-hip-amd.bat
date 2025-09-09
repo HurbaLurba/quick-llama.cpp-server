@@ -33,9 +33,9 @@ set HCC_AMDGPU_TARGET=gfx1103
 set GGML_HIP_DEVICE=0
 
 REM Performance settings optimized for AMD iGPU with HIP
-set BATCH_SIZE=1024
-set UBATCH_SIZE=512
-set N_GPU_LAYERS=35
+set BATCH_SIZE=512
+set UBATCH_SIZE=256
+set N_GPU_LAYERS=30
 set CACHE_TYPE_K=f16
 set CACHE_TYPE_V=f16
 set TEMPERATURE=0.15
@@ -199,6 +199,7 @@ if defined MMPROJ_PATH (
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
         --flash-attn 0 ^
+        --no-warmup ^
     %REASONING_FLAGS% ^
     %SWA_FLAGS% ^
     %JINJA_FLAGS% ^
@@ -225,6 +226,7 @@ if defined MMPROJ_PATH (
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
         --flash-attn 0 ^
+        --no-warmup ^
     %REASONING_FLAGS% ^
     %SWA_FLAGS% ^
     %JINJA_FLAGS% ^
