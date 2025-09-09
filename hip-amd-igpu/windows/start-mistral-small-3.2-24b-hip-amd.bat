@@ -36,11 +36,13 @@ REM Additional HIP environment for kernel compatibility
 set ROCBLAS_LAYER=3
 set HIP_FORCE_DEV_KERNARG=1
 set ROCBLAS_TENSILE_LIBPATH=%~dp0bin\rocblas\library
+set GGML_CUDA_FORCE_DMMV=1
+set GGML_CUDA_NO_PINNED=1
 
 REM Performance settings optimized for AMD iGPU with HIP
-set BATCH_SIZE=512
-set UBATCH_SIZE=256
-set N_GPU_LAYERS=30
+set BATCH_SIZE=256
+set UBATCH_SIZE=128
+set N_GPU_LAYERS=0
 set CACHE_TYPE_K=f16
 set CACHE_TYPE_V=f16
 set TEMPERATURE=0.15
