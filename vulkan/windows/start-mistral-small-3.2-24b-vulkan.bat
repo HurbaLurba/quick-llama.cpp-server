@@ -1,7 +1,23 @@
 @echo off
 REM Mistral Small 3.2 24B Vision Model - Windows Native Vulkan AMD GPU
 REM Vulkan backend for better AMD GPU compatibility than HIP
-setlocal EnableDelayedExpansion
+echo.
+echo Starting LLaMA.cpp server with Vulkan AMD GPU acceleration...
+echo Backend: Vulkan (AMD Graphics) - 35 GPU layers
+echo Model: %MODEL_REPO%:%MODEL_QUANT%
+if defined MMPROJ_PATH (
+    echo Vision: Enabled
+) else (
+    echo Vision: Disabled ^(MMProj not available^)
+)
+echo.
+echo [INFO] Model loading will take 2-3 minutes for GPU memory transfer
+echo [INFO] Server shows 'loading' page until tensors are transferred to Vulkan
+echo [INFO] DO NOT interrupt the process - let it complete fully
+echo.
+echo Server will be available at: http://localhost:%PORT%
+echo Press Ctrl+C to stop the server ONLY after it's fully loaded
+echo.leDelayedExpansion
 
 REM Activate the vulkan-llama-env virtual environment
 if not exist "%~dp0vulkan-llama-env\Scripts\activate.bat" (
