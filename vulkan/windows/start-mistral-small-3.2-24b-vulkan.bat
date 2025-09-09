@@ -31,10 +31,10 @@ set VK_LAYER_PATH=
 set VK_INSTANCE_LAYERS=
 set GGML_VULKAN_DEVICE=0
 
-REM Performance settings optimized for AMD iGPU with Vulkan
-set BATCH_SIZE=512
-set UBATCH_SIZE=256
-set N_GPU_LAYERS=35
+REM Performance settings optimized for AMD iGPU with Vulkan - CONSERVATIVE
+set BATCH_SIZE=256
+set UBATCH_SIZE=128
+set N_GPU_LAYERS=25
 set CACHE_TYPE_K=f16
 set CACHE_TYPE_V=f16
 set TEMPERATURE=0.15
@@ -118,43 +118,44 @@ if not exist "%MODEL_PATH%" (
     )
 )
 
-REM Download multimodal projection - ENABLE FOR VULKAN TEST
+REM Download multimodal projection - DISABLE FOR STABILITY TEST
 set MMPROJ_PATH=
-for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
-if not exist "%MMPROJ_PATH%" (
-    echo.
-    echo Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
-    echo    Size: ~2GB - vision capabilities
-    
-    hf download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --cache-dir "%LLAMA_CACHE%"
-    if errorlevel 1 (
-        echo [ERROR] MMProj download failed!
-        echo Vision capabilities will not be available
-        set MMPROJ_PATH=
-    ) else (
-        for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
-        if exist "%MMPROJ_PATH%" (
-            echo [OK] MMProj file cached: %MMPROJ_PATH%
-        ) else (
-            echo [WARNING] MMProj file not found in cache after download
-        )
-    )
-) else (
-    echo [OK] MMProj file already cached: %MMPROJ_PATH%
-)
+REM for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
+REM if not exist "%MMPROJ_PATH%" (
+REM     echo.
+REM     echo Downloading multimodal projection: %MMPROJ_REPO%/%MMPROJ_FILE%
+REM     echo    Size: ~2GB - vision capabilities
+REM     
+REM     hf download "%MMPROJ_REPO%" "%MMPROJ_FILE%" --cache-dir "%LLAMA_CACHE%"
+REM     if errorlevel 1 (
+REM         echo [ERROR] MMProj download failed!
+REM         echo Vision capabilities will not be available
+REM         set MMPROJ_PATH=
+REM     ) else (
+REM         for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
+REM         if exist "%MMPROJ_PATH%" (
+REM             echo [OK] MMProj file cached: %MMPROJ_PATH%
+REM         ) else (
+REM             echo [WARNING] MMProj file not found in cache after download
+REM         )
+REM     )
+REM ) else (
+REM     echo [OK] MMProj file already cached: %MMPROJ_PATH%
+REM )
 
 echo.
-echo Starting LLaMA.cpp server with Vulkan AMD GPU acceleration...
-echo Backend: Vulkan (Native Windows AMD)
-echo Model: %MODEL_REPO%:%MODEL_QUANT%
-if defined MMPROJ_PATH (
-    echo Vision: Enabled
-) else (
-    echo Vision: Disabled ^(MMProj not available^)
-)
+echo [INFO] Starting LLaMA.cpp server with Vulkan AMD GPU acceleration...
+echo [INFO] Backend: Vulkan (Native Windows AMD) - STABILITY TEST
+echo [INFO] Model: %MODEL_REPO%:%MODEL_QUANT%
+echo [INFO] GPU Layers: %N_GPU_LAYERS%/40 (conservative for stability)
+echo [INFO] Vision: Disabled (testing text-only first)
+echo.
+echo [IMPORTANT] Server will show startup messages then run continuously
+echo [IMPORTANT] Look for "HTTP server listening" message = SUCCESS
+echo [IMPORTANT] DO NOT close until you see that message!
 echo.
 echo Server will be available at: http://localhost:%PORT%
-echo Press Ctrl+C to stop the server
+echo Press Ctrl+C to stop the server ONLY after startup completes
 echo.
 
 REM Build dynamic extras
