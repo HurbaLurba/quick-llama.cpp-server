@@ -56,6 +56,11 @@ REM Cache directory
 set LLAMA_CACHE=%USERPROFILE%\.cache\llama
 if not exist "%LLAMA_CACHE%\models" mkdir "%LLAMA_CACHE%\models"
 if not exist "%LLAMA_CACHE%\mmproj" mkdir "%LLAMA_CACHE%\mmproj"
+REM Make Hugging Face use the same cache directory as above
+set HF_HOME=%LLAMA_CACHE%
+set HF_HUB_CACHE=%LLAMA_CACHE%
+REM Port
+set PORT=8085
 
 echo.
 echo Model Configuration:
@@ -102,6 +107,21 @@ if "%GPU_NAME%"=="GPU detection failed" (
 REM Use llama-server built-in Hugging Face loading for the model (-hf)
 set HF_SPEC=%MODEL_REPO%:%MODEL_QUANT%
 
+REM Seed HF cache with model file if missing (so server avoids network on first run)
+set MODEL_PATH=
+for /f "delims=" %%p in ('powershell -command "$repoKey = '%MODEL_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){$snap=(Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1); if($snap){ Join-Path $snap.FullName '%MODEL_FILE%' }}"') do set MODEL_PATH=%%p
+if not exist "%MODEL_PATH%" (
+    echo.
+    echo Priming model cache: %MODEL_REPO%/%MODEL_FILE%
+    hf download "%MODEL_REPO%" "%MODEL_FILE%" --cache-dir "%LLAMA_CACHE%"
+    if errorlevel 1 (
+        echo [WARNING] Could not pre-download model; server will attempt download on start
+    ) else (
+        for /f "delims=" %%p in ('powershell -command "$repoKey = '%MODEL_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){$snap=(Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1); if($snap){ Join-Path $snap.FullName '%MODEL_FILE%' }}"') do set MODEL_PATH=%%p
+        if exist "%MODEL_PATH%" echo [OK] Model cached: %MODEL_PATH%
+    )
+)
+
 REM Download multimodal projection into Hugging Face cache structure if not present
 set MMPROJ_PATH=
 for /f "delims=" %%p in ('powershell -command "$repoKey = '%MMPROJ_REPO%'.Replace('/', '--'); $base=Join-Path $env:LLAMA_CACHE \"models--$repoKey/snapshots\"; if(Test-Path $base){Get-ChildItem $base | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName '%MMPROJ_FILE%' }}"') do set MMPROJ_PATH=%%p
@@ -137,7 +157,7 @@ if defined MMPROJ_PATH (
     echo Vision: Disabled ^(MMProj not available^)
 )
 echo.
-echo Server will be available at: http://localhost:8080
+echo Server will be available at: http://localhost:%PORT%
 echo Press Ctrl+C to stop the server
 echo.
 
@@ -150,14 +170,27 @@ if /i "%CPU_MOE%"=="true" (
 if defined CACHE_REUSE set DYN_EXTRAS=!DYN_EXTRAS! --cache-reuse %CACHE_REUSE%
 if defined PREDICT set DYN_EXTRAS=!DYN_EXTRAS! --predict %PREDICT%
 
+REM Detect feature support from llama-server --help and build optional flags
+set REASONING_FLAGS=
+"%LLAMA_SERVER%" --help | findstr /i "reasoning-format" >nul && set REASONING_FLAGS=--reasoning-format %REASONING_FORMAT% --reasoning-budget %REASONING_BUDGET%
+set SWA_FLAGS=
+"%LLAMA_SERVER%" --help | findstr /i "swa-full" >nul && set SWA_FLAGS=--swa-full
+set JINJA_FLAGS=
+"%LLAMA_SERVER%" --help | findstr /i "jinja" >nul && set JINJA_FLAGS=--jinja
+
+REM Detect -hf support, fallback to --model if needed and we have a cached path
+set HF_ARG=
+"%LLAMA_SERVER%" --help | findstr /r /c:"-hf" >nul && set HF_ARG=-hf "%HF_SPEC%"
+if not defined HF_ARG if defined MODEL_PATH set HF_ARG=--model "%MODEL_PATH%"
+
 REM Start the server with HIP optimizations
 if defined MMPROJ_PATH (
     REM With vision support
     "%LLAMA_SERVER%" ^
-        -hf "%HF_SPEC%" ^
+    %HF_ARG% ^
         --mmproj "%MMPROJ_PATH%" ^
         --host 0.0.0.0 ^
-        --port 8080 ^
+    --port %PORT% ^
         --ctx-size %CONTEXT_SIZE% ^
         --batch-size %BATCH_SIZE% ^
         --ubatch-size %UBATCH_SIZE% ^
@@ -165,10 +198,9 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
-        --reasoning-format %REASONING_FORMAT% ^
-        --reasoning-budget %REASONING_BUDGET% ^
-        --swa-full ^
-        --jinja ^
+    %REASONING_FLAGS% ^
+    %SWA_FLAGS% ^
+    %JINJA_FLAGS% ^
         -n %MAX_TOKENS% ^
         --no-mmap ^
         --mlock ^
@@ -183,9 +215,9 @@ if defined MMPROJ_PATH (
 ) else (
     REM Without vision support
     "%LLAMA_SERVER%" ^
-        -hf "%HF_SPEC%" ^
+    %HF_ARG% ^
         --host 0.0.0.0 ^
-        --port 8080 ^
+    --port %PORT% ^
         --ctx-size %CONTEXT_SIZE% ^
         --batch-size %BATCH_SIZE% ^
         --ubatch-size %UBATCH_SIZE% ^
@@ -193,10 +225,9 @@ if defined MMPROJ_PATH (
         --n-gpu-layers %N_GPU_LAYERS% ^
         --cache-type-k %CACHE_TYPE_K% ^
         --cache-type-v %CACHE_TYPE_V% ^
-        --reasoning-format %REASONING_FORMAT% ^
-        --reasoning-budget %REASONING_BUDGET% ^
-        --swa-full ^
-        --jinja ^
+    %REASONING_FLAGS% ^
+    %SWA_FLAGS% ^
+    %JINJA_FLAGS% ^
         -n %MAX_TOKENS% ^
         --no-mmap ^
         --mlock ^
