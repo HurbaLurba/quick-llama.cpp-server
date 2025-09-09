@@ -83,15 +83,15 @@ rmdir /s /q temp 2>nul
 echo.
 echo 🔍 Checking dependencies and system setup...
 
-REM Check AMD drivers
+REM Check AMD drivers using PowerShell (modern method)
 echo.
 echo 🎮 AMD Graphics Detection:
-wmic path win32_VideoController get name | findstr /i "amd\|radeon" >nul
+powershell -Command "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -match 'AMD|Radeon'} | Select-Object Name" >nul 2>&1
 if errorlevel 1 (
     echo ⚠️ No AMD graphics detected - please install AMD Adrenalin drivers
 ) else (
     echo ✅ AMD graphics hardware detected:
-    wmic path win32_VideoController get name | findstr /i "amd\|radeon"
+    powershell -Command "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -match 'AMD|Radeon'} | ForEach-Object {Write-Host '   ' $_.Name}"
 )
 
 REM Check HIP runtime (if available)

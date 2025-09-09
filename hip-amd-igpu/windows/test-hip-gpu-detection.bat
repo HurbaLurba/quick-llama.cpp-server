@@ -9,26 +9,23 @@ echo Target: AMD 8945HS with Radeon 780M (gfx1103)
 echo.
 echo 💻 System Information:
 echo ----------------------
-systeminfo | findstr /C:"System Model" /C:"Processor" /C:"Total Physical Memory"
+powershell -Command "Get-ComputerInfo | Select-Object WindowsProductName, TotalPhysicalMemory, CsProcessors | Format-List"
 
 echo.
 echo 🎮 Graphics Hardware Detection:
 echo --------------------------------
 echo All Graphics Adapters:
-wmic path win32_VideoController get name,adapterram,driverversion /format:list | findstr /V "^$"
+powershell -Command "Get-WmiObject -Class Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | Format-Table -AutoSize"
 
 echo.
 echo 🔍 AMD-Specific Graphics Detection:
-wmic path win32_VideoController get name | findstr /i "amd\|radeon" >nul
+powershell -Command "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -match 'AMD|Radeon'}" >nul 2>&1
 if errorlevel 1 (
     echo ❌ No AMD graphics detected
     echo Please install AMD Adrenalin drivers
 ) else (
     echo ✅ AMD graphics detected:
-    wmic path win32_VideoController get name | findstr /i "amd\|radeon"
-    echo.
-    echo AMD Driver Details:
-    wmic path win32_VideoController where "name like '%%AMD%%' or name like '%%Radeon%%'" get name,driverversion,driverdate /format:list | findstr /V "^$"
+    powershell -Command "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -match 'AMD|Radeon'} | ForEach-Object {Write-Host '   ' $_.Name ' - Driver:' $_.DriverVersion}"
 )
 
 echo.

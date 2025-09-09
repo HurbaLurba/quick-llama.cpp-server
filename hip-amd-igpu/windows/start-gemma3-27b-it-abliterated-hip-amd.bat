@@ -65,10 +65,10 @@ echo    HSA_OVERRIDE_GFX_VERSION: %HSA_OVERRIDE_GFX_VERSION%
 echo    HCC_AMDGPU_TARGET: %HCC_AMDGPU_TARGET%
 echo    GGML_HIP_DEVICE: %GGML_HIP_DEVICE%
 
-REM Check AMD GPU
+REM Check AMD GPU using PowerShell (modern method)
 echo.
 echo 🎮 AMD Graphics Hardware:
-wmic path win32_VideoController get name | findstr /i "amd\|radeon" || echo    No AMD graphics detected via WMI
+powershell -Command "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -match 'AMD|Radeon'} | ForEach-Object {Write-Host '   ' $_.Name}" || echo    No AMD graphics detected via PowerShell
 
 REM Download model if not present
 set MODEL_PATH=%LLAMA_CACHE%\models\%MODEL_FILE%
