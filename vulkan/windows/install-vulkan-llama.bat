@@ -35,8 +35,8 @@ if errorlevel 1 (
 )
 echo [OK] huggingface-hub installed
 
-REM Vulkan build download
-set DOWNLOAD_URL=https://github.com/ggml-org/llama.cpp/releases/download/b6418/llama-b6418-bin-win-vulkan-x64.zip
+REM Vulkan build download - Updated to b6432 for better optimizations
+set DOWNLOAD_URL=https://github.com/ggml-org/llama.cpp/releases/download/b6432/llama-b6432-bin-win-vulkan-x64.zip
 set TEMP_DIR=%TEMP%\vulkan-llama
 set ZIP_FILE=%TEMP_DIR%\llama-vulkan.zip
 set BIN_DIR=%~dp0bin
