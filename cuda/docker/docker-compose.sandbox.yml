@@ -10,7 +10,7 @@ services:
       - "8085:8080"
     volumes:
       # Mount HuggingFace cache to local directory
-      - ${USERPROFILE}/llama.cpp:/root/.cache/llama
+      - ${USERPROFILE}\AppData\Local\llama.cpp:/root/.cache/llama
       # Mount scripts for easy access
       - ./scripts:/workspace/scripts:ro
     environment:
