@@ -4,43 +4,59 @@ Multi-model LLaMA.cpp server with CUDA support for NVIDIA GPUs.
 
 ## Build Instructions
 
-### 1. Build Base Image
-```bash
-docker-compose --profile build-base build llama-base
-```
-
-### 2. Build Custom Server (no cache)
-```bash
-docker-compose build --no-cache custom-llama-cpp-server
-```
-
-## Run Models (One at a Time)
-
 All models run on **port 8085** externally.
 
 ### Gemma 3 27B IT Abliterated Vision
+
 ```bash
 docker-compose up gemma3-27b-it-abliterated-vision
 ```
 
 ### Mistral Small 3.2 24B Vision
+
 ```bash
 docker-compose up mistral-small-3.2-24b-vision
 ```
 
-### Tiger Gemma 3 12B Vision
-```bash
-docker-compose up tiger-gemma3-12b-vision
+## Sandbox Environment
+
+For manual experimentation and development, use the sandbox container:
+
+### Launch Sandbox
+
+```powershell
+# PowerShell (Windows)
+.\launch-sandbox.ps1
+
+# Or manually
+docker-compose -f docker-compose.sandbox.yml up -d
+docker exec -it llama-sandbox bash
 ```
+
+### Stop Sandbox
+
+```powershell
+# PowerShell (Windows)
+.\stop-sandbox.ps1
+
+# Or manually
+docker-compose -f docker-compose.sandbox.yml down
+```
+
+The sandbox provides:
+
+- Direct access to `/app/llama-server` and other llama.cpp tools
+- HuggingFace model downloading with `huggingface-cli`
+- Models cached to `~/llama.cpp` on your host system
+- Port 8080 exposed for manual server instances
+
+See [README.sandbox.md](./README.sandbox.md) for detailed usage instructions.
 
 ## API Access
 
 Once running, the OpenAI-compatible API is available at:
-- `http://localhost:8085/v1/chat/completions`
-- `http://localhost:8085/v1/models`
 
-## Notes
-
-- Only run one model at a time (they all use port 8085)
-- Models support vision capabilities via image uploads
-- CUDA optimization for NVIDIA GPUs with 32GB+ VRAM
+- `http://localhost:8085/v1/chat/completions` (production containers)
+- `http://localhost:8080/v1/chat/completions` (sandbox)
+- `http://localhost:8085/v1/models` (production containers)
+- `http://localhost:8080/v1/models` (sandbox)

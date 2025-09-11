@@ -43,28 +43,6 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
 
-  # Custom LLaMA Server - Tiger Gemma 3 12B Vision
-  tiger-gemma3-12b-vision:
-    image: custom-llama-cpp-server:latest
-    build:
-      context: .
-      dockerfile: Dockerfile.custom-llama-cpp-server
-    container_name: tiger-gemma3-12b-vision
-    environment:
-      - MODEL_SCRIPT=tiger-gemma3-12b-vision
-    ports:
-      - "8085:8080"
-    volumes:
-      - ${USERPROFILE:-~}/.cache/llama:/root/.cache/llama 
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    restart: unless-stopped
-
 # Optional: Load balancer for A/B testing
   nginx:
     image: nginx:alpine
