@@ -8,8 +8,6 @@ This guide walks you through compiling llama.cpp with multiple backend configura
 
 ## 1. Prerequisites
 
-### Update System & Install Prerequisites
-
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
@@ -17,7 +15,7 @@ sudo apt update && sudo apt upgrade -y
 ### Install Build Tools & Libraries
 
 ```bash
-sudo apt install -y build-essential cmake git curl libcurl4-openssl-dev
+sudo apt install -y build-essential cmake python3 python3-pip git libcurl4-openssl-dev libgomp1 curl
 
 # Install BLAS libraries for CPU acceleration
 sudo apt install -y libopenblas-dev liblapack-dev pkg-config
@@ -248,19 +246,22 @@ mkdir "$BUILD_DIR" && cd "$BUILD_DIR"
 # Clear any cached configuration
 rm -rf CMakeCache.txt CMakeFiles/
 
-# Configure for CUDA only with minimal CPU features (GPU-optimized)
+# Configure for CUDA only with minimal CPU features
 cmake .. \
   -DGGML_CUDA=ON \
+  -DGGML_CUBLAS=ON \
+  -DGGML_FORCE_CUBLAS=ON \
   -DGGML_RPC=ON \
-  -DGGML_NATIVE=ON \
+  -DGGML_NATIVE=OFF \
+  -DGGML_BACKEND_DL=ON \
+  -DGGML_CPU_ALL_VARIANTS=ON \
+  -DGGML_CCACHE=OFF \
+  -DCMAKE_CUDA_ARCHITECTURES="86;89;90" \
   -DLLAMA_CURL=ON \
   -DCMAKE_BUILD_TYPE=Release
-  -DGGML_CUBLAS=ON \
-  -DLLAMA_CURL=ON \
-  -DGGML_FORCE_CUBLAS=ON \
 
 # Build
-make -j$(nproc)
+cmake --build . --config Release -j$(nproc)
 
 # Test
 ./bin/llama-server --help
@@ -283,19 +284,22 @@ cmake .. \
   -DGGML_CUDA=OFF \
   -DGGML_RPC=ON \
   -DGGML_CURL=ON \
-  -DGGML_NATIVE=ON \
+  -DGGML_NATIVE=OFF \
+  -DGGML_BACKEND_DL=ON \
+  -DGGML_CPU_ALL_VARIANTS=ON \
+  -DGGML_CCACHE=OFF \
   -DLLAMA_CURL=ON \
   -DCMAKE_BUILD_TYPE=Release
 
 # Build
-make -j$(nproc)
+cmake --build . --config Release -j$(nproc)
 
 # Test
 ./bin/llama-server --help
 cd ..
 ```
 
-### C. Windows MULTI Build (CUDA + Vulkan + All Features + Minimal CPU)
+### C. MULTI Build (CUDA + Vulkan + All Features + Minimal CPU)
 
 ```bash
 # Create timestamped Multi build folder
@@ -309,22 +313,26 @@ rm -rf CMakeCache.txt CMakeFiles/
 cmake .. \
   -DGGML_VULKAN=ON \
   -DGGML_CUDA=ON \
-  -DGGML_RPC=ON \
-  -DGGML_CURL=ON \
-  -DGGML_NATIVE=ON \
-  -DCMAKE_BUILD_TYPE=Release \
   -DGGML_CUBLAS=ON \
   -DGGML_FORCE_CUBLAS=ON \
+  -DGGML_RPC=ON \
+  -DGGML_CURL=ON \
+  -DGGML_NATIVE=OFF \
+  -DGGML_BACKEND_DL=ON \
+  -DGGML_CPU_ALL_VARIANTS=ON \
+  -DGGML_CCACHE=OFF \
+  -DCMAKE_CUDA_ARCHITECTURES="86;89;90" \
+  -DCMAKE_BUILD_TYPE=Release
 
 # Build
-make -j$(nproc)
+cmake --build . --config Release -j$(nproc)
 
 # Test
 ./bin/llama-server --help
 cd ..
 ```
 
-### D. Windows CPU Build (No CUDA/Vulkan + All CPU Features)
+### D. CPU Build (No CUDA/Vulkan + All CPU Features)
 
 ```bash
 # Create timestamped CPU build folder
@@ -339,13 +347,16 @@ cmake .. \
   -DGGML_CUDA=OFF \
   -DGGML_VULKAN=OFF \
   -DGGML_OPENGL=OFF \
-  -DGGML_NATIVE=ON \
+  -DGGML_NATIVE=OFF \
+  -DGGML_BACKEND_DL=ON \
+  -DGGML_CPU_ALL_VARIANTS=ON \
+  -DGGML_CCACHE=OFF \
   -DLLAMA_RPC=ON \
   -DLLAMA_CURL=ON \
   -DCMAKE_BUILD_TYPE=Release
 
 # Build
-make -j$(nproc)
+cmake --build . --config Release -j$(nproc)
 
 # Test
 ./bin/llama-server --help
@@ -615,12 +626,19 @@ $BUILD_DIR = "CUDA13_$(Get-Date -Format 'yyyy_MM_dd_HH_mm')"
 mkdir $BUILD_DIR
 cd $BUILD_DIR
 
+# Clear any cached configuration
+Remove-Item -Force -Recurse -Path CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
+
 # Configure for CUDA with minimal CPU features (GPU-optimized)
 cmake .. `
   -DGGML_CUDA=ON `
   -DGGML_CUBLAS=ON `
   -DGGML_FORCE_CUBLAS=ON `
-  -DGGML_NATIVE=ON `
+  -DGGML_NATIVE=OFF `
+  -DGGML_BACKEND_DL=ON `
+  -DGGML_CPU_ALL_VARIANTS=ON `
+  -DGGML_CCACHE=OFF `
+  -DCMAKE_CUDA_ARCHITECTURES="86;89;90" `
   -DCMAKE_BUILD_TYPE=Release `
   -DLLAMA_CURL=ON `
   -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
@@ -647,11 +665,17 @@ $BUILD_DIR = "VULKAN_$(Get-Date -Format 'yyyy_MM_dd_HH_mm')"
 mkdir $BUILD_DIR
 cd $BUILD_DIR
 
+# Clear any cached configuration
+Remove-Item -Force -Recurse -Path CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
+
 # Configure for Vulkan only with minimal CPU features
 cmake .. `
   -DGGML_VULKAN=ON `
   -DGGML_CUDA=OFF `
-  -DGGML_NATIVE=ON `
+  -DGGML_NATIVE=OFF `
+  -DGGML_BACKEND_DL=ON `
+  -DGGML_CPU_ALL_VARIANTS=ON `
+  -DGGML_CCACHE=OFF `
   -DCMAKE_BUILD_TYPE=Release `
   -DLLAMA_RPC=ON `
   -DLLAMA_CURL=ON `
@@ -676,13 +700,20 @@ $BUILD_DIR = "MULTI_$(Get-Date -Format 'yyyy_MM_dd_HH_mm')"
 mkdir $BUILD_DIR
 cd $BUILD_DIR
 
+# Clear any cached configuration
+Remove-Item -Force -Recurse -Path CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
+
 # Configure with all backends except maximal CPU (GPU-optimized)
 cmake .. `
   -DGGML_VULKAN=ON `
   -DGGML_CUDA=ON `
   -DGGML_CUBLAS=ON `
   -DGGML_FORCE_CUBLAS=ON `
-  -DGGML_NATIVE=ON `
+  -DGGML_NATIVE=OFF `
+  -DGGML_BACKEND_DL=ON `
+  -DGGML_CPU_ALL_VARIANTS=ON `
+  -DGGML_CCACHE=OFF `
+  -DCMAKE_CUDA_ARCHITECTURES="86;89;90" `
   -DCMAKE_BUILD_TYPE=Release `
   -DLLAMA_RPC=ON `
   -DLLAMA_CURL=ON `
@@ -710,13 +741,19 @@ $BUILD_DIR = "CPU_$(Get-Date -Format 'yyyy_MM_dd_HH_mm')"
 mkdir $BUILD_DIR
 cd $BUILD_DIR
 
+# Clear any cached configuration
+Remove-Item -Force -Recurse -Path CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
+
 # Configure for CPU only with all CPU optimizations (BF16 disabled for MSVC compatibility)
 cmake .. `
   -DGGML_VULKAN=OFF `
   -DGGML_CUDA=OFF `
   -DGGML_CUBLAS=OFF `
   -DGGML_FORCE_CUBLAS=OFF `
-  -DGGML_NATIVE=ON `
+  -DGGML_NATIVE=OFF `
+  -DGGML_BACKEND_DL=ON `
+  -DGGML_CPU_ALL_VARIANTS=ON `
+  -DGGML_CCACHE=OFF `
   -DCMAKE_BUILD_TYPE=Release `
   -DLLAMA_RPC=ON `
   -DLLAMA_CURL=ON `
