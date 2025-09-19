@@ -414,27 +414,58 @@ done
   nvidia-smi
   ls -la /dev/nvidia*
   
-  # Fix GPU device permissions (common issue)
+  # Fix GPU device permissions (CRITICAL - this fixes most issues)
   sudo chmod 666 /dev/nvidia*
   sudo chmod 666 /dev/nvidiactl
   sudo chmod 666 /dev/nvidia-modeset
+  sudo chmod 666 /dev/nvidia-uvm
+  sudo chmod 666 /dev/nvidia-uvm-tools
+  
+  # Fix nvidia-caps permissions (often missed but critical - if they exist)
+  sudo chmod 666 /dev/nvidia-caps/nvidia-cap1 2>/dev/null || echo "nvidia-cap1 not found (normal on many systems)"
+  sudo chmod 666 /dev/nvidia-caps/nvidia-cap2 2>/dev/null || echo "nvidia-cap2 not found (normal on many systems)"
   
   # Set NVIDIA persistence daemon
   sudo nvidia-smi -pm 1
   
+  # Verify all permissions are correct
+  ls -la /dev/nvidia*
+  ls -la /dev/nvidia-caps/
+  
   # Test CUDA context creation directly
-  cd /usr/local/cuda-13.0/samples/1_Utilities/deviceQuery
-  sudo make
-  ./deviceQuery
+  echo '#include <cuda_runtime.h>
+#include <stdio.h>
+int main() {
+    int count;
+    cudaError_t err = cudaGetDeviceCount(&count);
+    if (err != cudaSuccess) {
+        printf("CUDA Error: %s (code %d)\n", cudaGetErrorString(err), err);
+        return 1;
+    }
+    printf("Found %d CUDA devices\n", count);
+    return 0;
+}' > test_cuda.cpp
   
-  # If deviceQuery fails, try reloading drivers
-  sudo rmmod nvidia_uvm nvidia_drm nvidia_modeset nvidia
-  sudo modprobe nvidia nvidia_modeset nvidia_drm nvidia_uvm
+  export PATH=/usr/local/cuda-13.0/bin:$PATH
+  export LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:$LD_LIBRARY_PATH
+  nvcc test_cuda.cpp -o test_cuda
+  ./test_cuda
   
-  # Set CUDA environment and test again
+  # If still failing with error 999, may need driver reinstall or reboot
+  # This typically indicates a fundamental driver/kernel module issue
+  # Error 999 (cudaErrorUnknown) often requires a system reboot to resolve
+  
+  # Despite the error, llama-server may still work - test it:
+  # Set CUDA environment and test llama-server
   export CUDA_VISIBLE_DEVICES=0,1,2
   export LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:$LD_LIBRARY_PATH
   ./bin/llama-server --help
+  
+  # If llama-server shows help and loads CUDA backend, it may work despite the init error
+  # To fully resolve error 999, try:
+  # 1. Reboot the system (most common fix)
+  # 2. If reboot doesn't help, reinstall NVIDIA drivers
+  # 3. Check for kernel/driver version compatibility issues
   ```
 
 **"no usable GPU found" (after successful CUDA linking)**:
