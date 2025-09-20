@@ -1,0 +1,65 @@
+# Docker Compose for Ubuntu Server - LLaMA.cpp CUDA 13.0.1
+# Optimized for automated builds and GPU support
+version: '3.8'
+
+services:
+  llamacpp-server:
+    image: philglod/llamacpp-cuda13-modern-full:latest
+    container_name: llamacpp-production
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/models
+      - ./logs:/app/logs
+    environment:
+      - CUDA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      --server 
+      --host 0.0.0.0 
+      --port 8080
+      --model /models/default-model.gguf
+      --ctx-size 4096
+      --n-gpu-layers 999
+      --metrics
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Model downloader service
+  model-downloader:
+    image: philglod/llamacpp-cuda13-modern-full:latest
+    container_name: llamacpp-downloader
+    volumes:
+      - ./models:/models
+    profiles:
+      - tools
+    environment:
+      - CUDA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  models:
+    driver: local
+  logs:
+    driver: local
+
+networks:
+  default:
+    name: llamacpp-network
