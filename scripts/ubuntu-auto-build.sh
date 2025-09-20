@@ -50,8 +50,8 @@ log "Current llama.cpp commit: $OLD_COMMIT"
 
 # Update to latest llama.cpp
 git fetch origin || error_exit "Failed to fetch llama.cpp updates"
-git checkout main || error_exit "Failed to checkout main branch"
-git pull origin main || error_exit "Failed to pull llama.cpp updates"
+git checkout master || error_exit "Failed to checkout master branch"
+git pull origin master || error_exit "Failed to pull llama.cpp updates"
 
 # Get new commit hash after update
 NEW_COMMIT=$(git rev-parse HEAD)
